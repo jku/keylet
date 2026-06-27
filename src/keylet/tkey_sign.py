@@ -10,6 +10,7 @@ https://github.com/tillitis/tkey-pq-device-signer
 from __future__ import annotations
 
 import hashlib
+import importlib.resources
 import logging
 from dataclasses import dataclass
 
@@ -29,6 +30,22 @@ class SignApp:
     name: tuple[str, str] = ("tk1", "pqsn")
     sig_size: int = 2420
     key_size: int = 1312
+
+    @classmethod
+    def load(cls, version: int = 3) -> SignApp:
+        """Load embedded device signer application."""
+        try:
+            name = f"pqsigner_v{version}.bin"
+            binary = (
+                importlib.resources.files("keylet.resources")
+                .joinpath(name)
+                .read_bytes()
+            )
+            return cls(binary, version)
+        except FileNotFoundError as e:
+            raise ValueError(
+                f"TKey device app v{version} not found in package resources"
+            ) from e
 
 
 class SignRsp:

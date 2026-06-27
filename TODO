@@ -7,20 +7,20 @@
   * **Ruff**: Configure linter rules (e.g. `I` for isort, `UP` for pyupgrade, `D` for pydocstyle) and formatter settings
   * **Mypy**: Enable strict type checking and configure overrides (e.g., for `serial`)
   * **Pytest**: Configure test discovery and coverage
-* [ ] Configure CLI entry point in `pyproject.toml`
+* [x] Configure CLI entry point in `pyproject.toml`
   * Add `[project.scripts]` mapping `keylet` to `keylet.bin.cli:main`
-* [ ] Ensure `py.typed` and resource binaries are correctly packaged by the build backend (`uv_build`)
+* [x] Ensure `py.typed` and resource binaries are correctly packaged by the build backend (`uv_build`)
 
 ## 2. CLI Implementation
-* [ ] Implement `keylet.bin.cli` using `argparse` (or a library like `click` if preferred)
+* [x] Implement `keylet.bin.cli` using `argparse` (or a library like `click` if preferred)
   * `keylet sign [--passphrase <SECRET>] <FILE>` -> writes `<FILE>.signature`
   * `keylet verify [--pubkey <FILE>] <FILE>` -> gets pubkey from file/device, verifies `<FILE>` using `<FILE>.signature`
   * `keylet --output <KEYFILE> pubkey` -> reads pubkey from device, writes to file
   * Implement clean error handling for device connection issues (e.g., `TKeyNotFoundError`)
 
 ## 3. Device Binary Storage & Integration
-* [ ] Add the actual device signer binaries as package resources (e.g., under `src/keylet/resources/`)
-* [ ] Implement device binary loading in `SignApp`
+* [x] Add the actual device signer binaries as package resources (e.g., under `src/keylet/resources/`)
+* [x] Implement device binary loading in `SignApp`
   * Add version/hash pinning verification or option to load custom/latest binaries
   * Expose loaded device binary version/hash programmatically
 

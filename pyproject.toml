@@ -12,6 +12,10 @@ dependencies = [
     "pyserial>=3.5",
 ]
 
+[project.scripts]
+keylet = "keylet.bin.cli:main"
+
+
 [dependency-groups]
 dev = [
     "mypy>=1.10.0",
