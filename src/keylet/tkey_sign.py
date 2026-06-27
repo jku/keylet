@@ -10,7 +10,7 @@ import importlib.resources
 import logging
 from dataclasses import dataclass
 
-from keylet.tkey import Cmd, LenIdx, Rsp, TKey, TKeyError
+from keylet.tkey import Cmd, LenIdx, Rsp, TKey, TKeyAppError, TKeyError
 
 logger = logging.getLogger(__name__)
 
@@ -122,18 +122,25 @@ class TKeySign(TKey):
         self.key_size = app.key_size
         self.sig_size = app.sig_size
 
-        if not self.load_app(app.binary, secret):
-            # TKey is not in firmware mode: Query application name and version
-            rx = self.send(SignCmd.GET_NAMEVERSION)
-            name = (rx[2:6].decode("ascii").rstrip(), rx[6:10].decode("ascii").rstrip())
-            ver = int.from_bytes(rx[10:14], byteorder="little")
-            if name == app.name and ver == app.version:
-                return  # Signer application is already loaded
+        try:
+            if not self.load_app(app.binary, secret):
+                # TKey is not in firmware mode: Query application name and version
+                rx = self.send(SignCmd.GET_NAMEVERSION)
+                name = (
+                    rx[2:6].decode("ascii").rstrip(),
+                    rx[6:10].decode("ascii").rstrip(),
+                )
+                ver = int.from_bytes(rx[10:14], byteorder="little")
+                if name == app.name and ver == app.version:
+                    return  # Signer application is already loaded
 
-            raise TKeyError(
-                f"TKey is running an unknown application {name, ver}, "
-                f"expected {app.name, app.version}"
-            )
+                raise TKeyAppError(
+                    f"TKey is running an unknown application {name, ver}, "
+                    f"expected {app.name, app.version}"
+                )
+        except TKeyError:
+            self.disconnect()
+            raise
 
     def get_pubkey(self) -> bytes:
         """Retrieve the public key bytes from the TKey device.

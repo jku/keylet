@@ -214,6 +214,78 @@ class TestTKeySign(unittest.TestCase):
         signature = tkeysign.sign(b"test message", pub_key=pubkey)
         self.assertEqual(signature, sig_data)
 
+    @patch.object(TKeySign, "_find_device", return_value="/dev/ttyACM0")
+    @patch.object(TKeySign, "_get_connection")
+    def test_load_app_hashes_secret(
+        self, mock_get_connection: MagicMock, mock_find_device: MagicMock
+    ) -> None:
+        """Test verifies that we do not accidentally change the load app content
+        as it could change key derivation on device."""
+        # Set up responses for:
+        # 1. NAME_VERSION (FW mode check)
+        # 2. LOAD_APP
+        # 3. LOAD_APP_DATA (only one chunk because file size is small)
+        fw_name_payload = b"tk1 " + b"mkdf"
+        fw_response = make_response_frame(
+            fid=1,
+            eid=2,
+            status=0,
+            rsp=FwRsp.NAME_VERSION,
+            data=fw_name_payload,
+        )
+
+        load_app_response = make_response_frame(
+            fid=2,
+            eid=2,
+            status=0,
+            rsp=FwRsp.LOAD_APP,
+            data=b"\x00",
+        )
+
+        file_digest = hashlib.blake2s(b"mock_app_data", digest_size=32).digest()
+        load_app_data_response = make_response_frame(
+            fid=3,
+            eid=2,
+            status=0,
+            rsp=FwRsp.LOAD_APP_DATA_READY,
+            data=b"\x00" + file_digest,
+        )
+
+        mock_conn = MockStreamConnection(
+            reads=[fw_response, load_app_response, load_app_data_response]
+        )
+        mock_get_connection.return_value = mock_conn
+
+        secret = "my_super_secret_passphrase"
+        app = SignApp(binary=b"mock_app_data", version=3, key_size=128, sig_size=64)
+        tk = TKeySign(app=app, device=None, secret=secret)
+        tk.disconnect()
+
+        # Extract the written bytes to inspect the LOAD_APP command frame payload
+        written_bytes = bytes(mock_conn.written)
+
+        # First frame (NAME_VERSION): Header (1 byte) + Cmd ID (1 byte) = 2 bytes
+        # Second frame (LOAD_APP): Header (1 byte) + Cmd ID (1 byte) +
+        # Payload (127 bytes) = 129 bytes
+        load_app_frame = written_bytes[2 : 2 + 129]
+
+        self.assertEqual(
+            load_app_frame[0], 0x53
+        )  # FID=2, EID=2, Status=0, LenIdx=3 -> 0x53
+        self.assertEqual(load_app_frame[1], FwCmd.LOAD_APP.id)
+
+        # Verify the payload contents
+        payload = load_app_frame[2:]
+        # Size (4 bytes, little endian)
+        self.assertEqual(payload[0:4], (13).to_bytes(4, byteorder="little"))
+        # Passphrase enabled flag (1 byte)
+        self.assertEqual(payload[4], 1)
+        # Hashed passphrase (32 bytes)
+        expected_hashed_secret = hashlib.blake2s(
+            secret.encode("utf-8"), digest_size=32
+        ).digest()
+        self.assertEqual(payload[5 : 5 + 32], expected_hashed_secret)
+
 
 if __name__ == "__main__":
     unittest.main()

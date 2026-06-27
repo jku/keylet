@@ -30,7 +30,7 @@
 * [x] Implement mocked unit tests (no physical device required)
   * Mock serial communication to test protocol framing, application loading, and signing flow
   * Take inspiration from `../securesystemslib/tests/test_tkey_signer.py`
-* [ ] Implement integration/device-dependent tests
+* [x] Implement integration/device-dependent tests
   * Require a test device running a binary built with `no-touch-requirement`
   * Exclude these from default test runs (e.g., using a custom pytest marker like `@pytest.mark.device`)
 
