@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 keylet authors
+
 """Keylet TKey signer implementation
 
 This class implements a host application for a TKey signer. The design supports

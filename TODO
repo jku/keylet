@@ -38,7 +38,7 @@
   * **CI**: Run `ruff check`, `ruff format --check`, `mypy`, and `pytest` on a Python matrix (3.10+)
   * **Security**: Run `zizmor` on GitHub Actions workflows
   * **Release**: Build and publish to PyPI using OIDC trusted publishing when a version tag (`v*`) is pushed
-* [ ] Add License file (MIT) and ensure copyright/license headers are present in source files
+* [x] Add License file (MIT) and ensure copyright/license headers are present in source files
 
 ## 6. Documentation
 * [ ] Add API reference documentation using `mkdocs` (with `mkdocstrings`) or `sphinx`

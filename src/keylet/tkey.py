@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 keylet authors
+
 """Keylet TKey
 
 This class is used to build host/client applications for a Tillitis TKey.

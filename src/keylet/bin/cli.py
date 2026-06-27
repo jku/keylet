@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 keylet authors
+
 import argparse
 import sys
 from pathlib import Path

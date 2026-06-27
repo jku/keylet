@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 keylet authors
+
 import hashlib
 import unittest
 from unittest.mock import MagicMock, patch
