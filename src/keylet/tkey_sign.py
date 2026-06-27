@@ -1,14 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 keylet authors
 
-"""Keylet TKey signer implementation
-
-This class implements a host application for a TKey signer. The design supports
-a specific application protocol (see SignCmd)
-
-The protocol and device binary are from
-https://github.com/tillitis/tkey-pq-device-signer
-"""
+"""Keylet TKey signer implementation"""
 
 from __future__ import annotations
 
@@ -26,7 +19,15 @@ MU_SIZE = (64).to_bytes(4, byteorder="little")
 
 @dataclass
 class SignApp:
-    """Signapp represents the *device* signing application"""
+    """Configuration and binary data for the TKey device signer application.
+
+    Attributes:
+        binary: The raw bytes of the device application binary.
+        version: The version number of the device application.
+        name: Application name application name (defaults to `("tk1", "pqsn")`).
+        sig_size: The size of the generated signature in bytes (defaults to 2420).
+        key_size: The size of the public key in bytes (defaults to 1312).
+    """
 
     binary: bytes
     version: int
@@ -36,7 +37,17 @@ class SignApp:
 
     @classmethod
     def load(cls, version: int = 3) -> SignApp:
-        """Load embedded device signer application."""
+        """Load a signer application binary from package resources.
+
+        Args:
+            version: The version of the signer application to load. Defaults to 3.
+
+        Returns:
+            An instance of SignApp configured with the loaded binary.
+
+        Raises:
+            ValueError: If the requested version binary is not found in resources.
+        """
         try:
             name = f"pqsigner_v{version}.bin"
             binary = (
@@ -74,7 +85,13 @@ class SignCmd:
 
 
 class TKeySign(TKey):
-    """Client for a TKey signer application"""
+    """Client for communicating with the TKey signer application.
+
+    This class extends the base TKey client to implement the high-level
+    public key retrieval and ML-DSA signing flows.
+
+    The signer protocol matches [tkey-pq-device-signer](https://github.com/tillitis/tkey-pq-device-signer).
+    """
 
     def __init__(
         self,
@@ -82,6 +99,25 @@ class TKeySign(TKey):
         device: str | None = None,
         secret: str | None = None,
     ) -> None:
+        """Initialize the TKey signing client.
+
+        If the TKey device is in firmware mode, this will automatically load the
+        application binary. If the device is already running an application, it
+        verifies that the running application matches the expected name and version.
+
+        Args:
+            app: The SignApp configuration containing the binary and metadata.
+            device: Optional serial port path (e.g., `/dev/ttyACM0`). If None,
+                the port is auto-detected.
+            secret: Optional User Supplied Secret (passphrase) used as a seed
+                for key derivation.
+
+        Raises:
+            TKeyNotFoundError: If the TKey device cannot be found.
+            TKeyAppError: If loading the application fails or the device is
+                running a mismatched application.
+            TKeyError: For other connection or initialization failures.
+        """
         super().__init__(device)
         self.key_size = app.key_size
         self.sig_size = app.sig_size
@@ -100,7 +136,15 @@ class TKeySign(TKey):
             )
 
     def get_pubkey(self) -> bytes:
-        """Retrieve public key bytes from device in multiple frames."""
+        """Retrieve the public key bytes from the TKey device.
+
+        Returns:
+            The raw public key bytes.
+
+        Raises:
+            TKeyIOError: If reading from the serial port fails.
+            TKeyProtocolError: If there is a framing or protocol mismatch.
+        """
         pubkey = bytearray(self.key_size)
 
         # Issue command, read first frame
@@ -117,7 +161,28 @@ class TKeySign(TKey):
         return bytes(pubkey)
 
     def sign(self, message: bytes, pub_key: bytes | None = None) -> bytes:
-        """Sign message using ML-DSA. Computes FIPS 204 external mu."""
+        """Sign a message using ML-DSA.
+
+        Computes the FIPS 204 external mu using the message and public key,
+        sends it to the device, and retrieves the signature.
+
+        Note:
+            This method blocks and waits (up to 60 seconds) for the user to touch
+            the physical TKey device when it flashes.
+
+        Args:
+            message: The raw bytes of the message/payload to sign.
+            pub_key: The public key bytes used to compute the external mu.
+                If None, the public key is retrieved from the device.
+
+        Returns:
+            The generated signature as raw bytes.
+
+        Raises:
+            TKeyError: If the device returns a bad status during signing.
+            TKeyIOError: If writing or reading from the serial port fails.
+            TKeyProtocolError: If there is a framing or protocol mismatch.
+        """
         if pub_key is None:
             pub_key = self.get_pubkey()
 

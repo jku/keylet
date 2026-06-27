@@ -69,9 +69,17 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@f59926e2e5b41075beaa4cb803a67035cf086c0e # v5.2.1
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-groups
 
       - name: Build package
         run: uv build
+
+      - name: Build documentation
+        run: uv run zensical build --strict
 
   zizmor:
     name: zizmor

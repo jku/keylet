@@ -21,8 +21,9 @@
 ## 3. Device Binary Storage & Integration
 * [x] Add the actual device signer binaries as package resources (e.g., under `src/keylet/resources/`)
 * [x] Implement device binary loading in `SignApp`
-  * Add version/hash pinning verification or option to load custom/latest binaries
-  * Expose loaded device binary version/hash programmatically
+* [ ] Improve binary loading
+  * Add some sort of hash pinning so users can load the exact binary they need
+  * Expose loaded device binary version/hash in SignApp
 
 ## 4. Testing
 * [x] Set up `tests/` directory
@@ -41,5 +42,5 @@
 * [x] Add License file (MIT) and ensure copyright/license headers are present in source files
 
 ## 6. Documentation
-* [ ] Add API reference documentation using `mkdocs` (with `mkdocstrings`) or `sphinx`
-* [ ] Set up automatic documentation deployment to GitHub Pages via CI
+* [x] Add API reference documentation using `mkdocs` (with `mkdocstrings`) or `sphinx`
+* [x] Set up automatic documentation deployment to GitHub Pages via CI

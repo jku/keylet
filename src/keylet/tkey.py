@@ -1,16 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 keylet authors
 
-"""Keylet TKey
-
-This class is used to build host/client applications for a Tillitis TKey.
-It implements the Firmware protocol and provides serial IO as well
-as some helpers for the actual application implementation.
-
-Links:
-* Framing protocol https://dev.tillitis.se/protocol/#framing-protocol
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -109,14 +99,20 @@ class TKeyProtocolError(TKeyError):
 class TKey:
     """Base TKey Client
 
-    TKey handles serial IO with send() and application loading with load_app().
+    TKey is used to build host (client) applications for a Tillitis TKey.
+    It implements the Firmware protocol and provides serial IO as well
+    as some helpers for the actual application implementation.
 
+    Links:
+
+    * [Framing protocol](https://dev.tillitis.se/protocol/#framing-protocol)
     """
 
     def __init__(
         self,
         device: str | None,
     ) -> None:
+        """Initialize serial connection to TKey device"""
 
         self._conn: SerialConnection | None = None
         self._fid = 0
@@ -180,7 +176,11 @@ class TKey:
         return self._fid
 
     def send(self, cmd: Cmd, data: bytes = b"", timeout: int = -1) -> bytes:
-        """Frame and send a command, then read and validate the response."""
+        """Frame and send a command, then read the first response frame.
+
+        Caller is expected to call recv_response() if the response is longer than one
+        frame.
+        """
         if self._conn is None:
             raise TKeyError("TKey is not connected")
 
@@ -218,7 +218,10 @@ class TKey:
         return self.recv_response(cmd)
 
     def recv_response(self, cmd: Cmd) -> bytes:
-        """Reads a response frame and validates it against the expected command."""
+        """Returns a response frame.
+
+        `recv_response()` can only be called if there are unread frames from a previous
+        `send()` call for the given command"""
         if self._conn is None:
             raise TKeyError("TKey is not connected")
 
@@ -273,7 +276,7 @@ class TKey:
 
     def load_app(self, app_binary: bytes, secret: str | None = None) -> bool:
         """
-        Returns True if the application as loaded, False if the device is not
+        Returns True if the application was loaded, False if the device is not
         in Firmware mode
         """
         file_size = len(app_binary)
