@@ -35,19 +35,37 @@ PROTO_DATA_LENGTH = [1, 4, 32, 128]
 # Length indices mapping to PROTO_DATA_LENGTH
 class LenIdx:
     I1 = 0
+    """1-byte payload length index."""
     I4 = 1
+    """4-byte payload length index."""
     I32 = 2
+    """32-byte payload length index."""
     I128 = 3
+    """128-byte payload length index."""
 
 
 @dataclass(frozen=True)
 class Rsp:
+    """Protocol response definition.
+
+    Attributes:
+        id: The response identifier byte.
+        len_idx: The length index indicating the expected data size.
+    """
     id: int
     len_idx: int
 
 
 @dataclass(frozen=True)
 class Cmd:
+    """Protocol command definition.
+
+    Attributes:
+        id: The command identifier byte.
+        endpoint: The target endpoint on the device.
+        len_idx: The length index indicating the payload data size.
+        valid_responses: A tuple of acceptable responses for this command.
+    """
     id: int
     endpoint: int
     len_idx: int
@@ -58,19 +76,26 @@ class FwRsp:
     """Firmware responses"""
 
     NAME_VERSION = Rsp(0x02, LenIdx.I32)
+    """Response containing firmware name and version."""
     LOAD_APP = Rsp(0x04, LenIdx.I4)
+    """Response indicating the application loading status."""
     LOAD_APP_DATA = Rsp(0x06, LenIdx.I4)
+    """Response indicating the application data chunk status."""
     LOAD_APP_DATA_READY = Rsp(0x07, LenIdx.I128)
+    """Response indicating all application data has been received and verified."""
 
 
 class FwCmd:
     """Firmware commands"""
 
     NAME_VERSION = Cmd(0x01, 2, LenIdx.I1, (FwRsp.NAME_VERSION,))
+    """Command to query the firmware name and version."""
     LOAD_APP = Cmd(0x03, 2, LenIdx.I128, (FwRsp.LOAD_APP,))
+    """Command to initiate application loading with size and optional secret."""
     LOAD_APP_DATA = Cmd(
         0x05, 2, LenIdx.I128, (FwRsp.LOAD_APP_DATA, FwRsp.LOAD_APP_DATA_READY)
     )
+    """Command to send a chunk of application binary data."""
 
 
 _TKey = TypeVar("_TKey", bound="TKey")
@@ -112,7 +137,16 @@ class TKey:
         self,
         device: str | None,
     ) -> None:
-        """Initialize serial connection to TKey device"""
+        """Initialize serial connection to TKey device.
+
+        Args:
+            device: Optional serial port path (e.g., `/dev/ttyACM0`). If None,
+                the port is auto-detected.
+
+        Raises:
+            TKeyNotFoundError: If no TKey device is found.
+            TKeyError: If the serial connection fails to open.
+        """
 
         self._conn: SerialConnection | None = None
         self._fid = 0
@@ -180,6 +214,20 @@ class TKey:
 
         Caller is expected to call recv_response() if the response is longer than one
         frame.
+
+        Args:
+            cmd: The command to send.
+            data: Optional payload data for the command.
+            timeout: Optional serial timeout in seconds. If -1, the default
+                connection timeout is used.
+
+        Returns:
+            The first response frame as bytes.
+
+        Raises:
+            TKeyError: If the TKey is not connected.
+            TKeyProtocolError: If the data exceeds the command's maximum length.
+            TKeyIOError: If writing the frame fails.
         """
         if self._conn is None:
             raise TKeyError("TKey is not connected")
@@ -218,10 +266,23 @@ class TKey:
         return self.recv_response(cmd)
 
     def recv_response(self, cmd: Cmd) -> bytes:
-        """Returns a response frame.
+        """Receive and return a response frame.
 
         `recv_response()` can only be called if there are unread frames from a previous
-        `send()` call for the given command"""
+        `send()` call for the given command.
+
+        Args:
+            cmd: The command that this response is for.
+
+        Returns:
+            The response frame as bytes.
+
+        Raises:
+            TKeyError: If the TKey is not connected.
+            TKeyIOError: If reading the response from the serial port fails or returns no data.
+            TKeyProtocolError: If the response status is not OK, the response length is invalid,
+                the frame ID/endpoint mismatch, or the response ID is unexpected.
+        """
         if self._conn is None:
             raise TKeyError("TKey is not connected")
 
@@ -275,9 +336,21 @@ class TKey:
         return bytes(response)
 
     def load_app(self, app_binary: bytes, secret: str | None = None) -> bool:
-        """
-        Returns True if the application was loaded, False if the device is not
-        in Firmware mode
+        """Load an application binary into the TKey device.
+
+        Args:
+            app_binary: The raw bytes of the application binary.
+            secret: Optional User Supplied Secret (passphrase) to configure the app with.
+
+        Returns:
+            True if the application was successfully loaded, False if the
+                device was not in firmware mode (i.e. already running an application).
+
+        Raises:
+            TKeyAppError: If the binary is too large, the device is not ready,
+                or the loaded app's digest does not match the local digest.
+            TKeyError: If the device is running an unknown firmware or if loading
+                data fails.
         """
         file_size = len(app_binary)
         if file_size > APP_MAXSIZE:

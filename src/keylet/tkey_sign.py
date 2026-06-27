@@ -17,6 +17,14 @@ logger = logging.getLogger(__name__)
 MU_SIZE = (64).to_bytes(4, byteorder="little")
 
 
+# Static registry of all signer binaries packaged in keylet.resources.
+# First binary in the list is the default binary.
+# Format: (filename, version, name)
+_EMBEDDED_MLDSA_BINS: list[tuple[str, int, tuple[str, str]]] = [
+    ("pqsigner_v3.bin", 3, ("tk1", "pqsn")),
+]
+
+
 @dataclass
 class SignApp:
     """Configuration and binary data for the TKey device signer application.
@@ -24,7 +32,8 @@ class SignApp:
     Attributes:
         binary: The raw bytes of the device application binary.
         version: The version number of the device application.
-        name: Application name application name (defaults to `("tk1", "pqsn")`).
+        name: A tuple representing the expected firmware name and app name
+            on the device (defaults to `("tk1", "pqsn")`).
         sig_size: The size of the generated signature in bytes (defaults to 2420).
         key_size: The size of the public key in bytes (defaults to 1312).
     """
@@ -35,31 +44,68 @@ class SignApp:
     sig_size: int = 2420
     key_size: int = 1312
 
+    @property
+    def digest(self) -> str:
+        """Return the BLAKE2s-256 hex digest of the application binary."""
+        return hashlib.blake2s(self.binary, digest_size=32).hexdigest()
+
     @classmethod
-    def load(cls, version: int = 3) -> SignApp:
-        """Load a signer application binary from package resources.
+    def load_mldsa(cls, version: int | None = None, digest: str | None = None) -> SignApp:
+        """Load a ML-DSA signer application from package resources.
+
+        If a digest (or prefix) is provided, it returns the binary matching the
+        digest. If a version is provided, it filters by version. If neither is
+        provided, current default binary is loaded.
+
+        TKey key derivation depends on the application binary, so users who want a
+        specific key must provide the binary digest.
 
         Args:
-            version: The version of the signer application to load. Defaults to 3.
+            version: The version of the signer application to load.
+            digest: A BLAKE2s-256 hex digest (or prefix) of the target binary.
 
         Returns:
             An instance of SignApp configured with the loaded binary.
 
         Raises:
-            ValueError: If the requested version binary is not found in resources.
+            ValueError: If no binary matches the criteria, or if the search
+                is ambiguous (matches multiple binaries).
         """
-        try:
-            name = f"pqsigner_v{version}.bin"
-            binary = (
-                importlib.resources.files("keylet.resources")
-                .joinpath(name)
-                .read_bytes()
-            )
-            return cls(binary, version)
-        except FileNotFoundError as e:
+        resources_dir = importlib.resources.files("keylet.resources")
+        matches = []
+
+        # Scan registered binaries
+        for filename, file_ver, name in _EMBEDDED_MLDSA_BINS:
+            # Filter by version if requested
+            if version is not None and file_ver != version:
+                continue
+
+            binary = resources_dir.joinpath(filename).read_bytes()
+            file_digest = hashlib.blake2s(binary, digest_size=32).hexdigest()
+
+            # Filter by digest if requested
+            if digest is not None and not file_digest.startswith(digest.lower()):
+                continue
+
+            matches.append((binary, file_ver, name, filename))
+
+            if digest is None and version is None:
+                # First binary is the default one
+                break
+
+        if not matches:
             raise ValueError(
-                f"TKey device app v{version} not found in package resources"
-            ) from e
+                f"No device binary found matching: version={version}, digest={digest}"
+            )
+
+        if len(matches) > 1:
+            raise ValueError(
+                f"Multiple device binaries found matching: version={version}, "
+                f"digest={digest}."
+            )
+
+        matched_binary, matched_version, matched_name, _ = matches[0]
+        return cls(matched_binary, matched_version, matched_name)
 
 
 class SignRsp:
@@ -87,10 +133,9 @@ class SignCmd:
 class TKeySign(TKey):
     """Client for communicating with the TKey signer application.
 
-    This class extends the base TKey client to implement the high-level
-    public key retrieval and ML-DSA signing flows.
-
-    The signer protocol matches [tkey-pq-device-signer](https://github.com/tillitis/tkey-pq-device-signer).
+    This class extends the base TKey client to implement public key retrieval and
+    signing as defined in the
+    [tkey-pq-device-signer protocol](https://github.com/tillitis/tkey-pq-device-signer).
     """
 
     def __init__(

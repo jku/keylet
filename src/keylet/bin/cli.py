@@ -14,7 +14,7 @@ from keylet.tkey_sign import SignApp, TKeySign
 
 def get_signer(device: str | None, passphrase: str | None) -> TKeySign:
     """Helper to initialize TKeySign with the default device signer binary."""
-    app = SignApp.load()
+    app = SignApp.load_mldsa()
     return TKeySign(app, device=device, secret=passphrase)
 
 

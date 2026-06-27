@@ -28,11 +28,13 @@ $ keylet verify --pubkey pub.key README.md
 ```python
 from keylet import TKeySign, SignApp
 
-# Load the default embedded signer binary
-app = SignApp.load()
+# Load the default embedded ML-DSA signer
+app = SignApp.load_mldsa()
 
 # Initialize the signer with a passphrase
 with TKeySign(app=app, secret="hunter2") as signer:
     # Sign a payload
     signature = signer.sign(b"my payload")
 ```
+
+See the [API Reference](api.md) for more details.

@@ -286,6 +286,77 @@ class TestTKeySign(unittest.TestCase):
         ).digest()
         self.assertEqual(payload[5 : 5 + 32], expected_hashed_secret)
 
+    @patch("importlib.resources.files")
+    @patch("keylet.tkey_sign._EMBEDDED_MLDSA_BINS", new_callable=list)
+    def test_sign_app_load_by_digest(
+        self,
+        mock_embedded: list[tuple[str, int, tuple[str, str]]],
+        mock_files: MagicMock,
+    ) -> None:
+        bin0 = b"binary_zero_data"
+        bin1 = b"binary_one_data"
+        bin2 = b"binary_two_data"
+
+        digest0 = hashlib.blake2s(bin0, digest_size=32).hexdigest()
+        digest1 = hashlib.blake2s(bin1, digest_size=32).hexdigest()
+        digest2 = hashlib.blake2s(bin2, digest_size=32).hexdigest()
+
+        # Configure the mock registry
+        mock_embedded.clear()
+        mock_embedded.extend([
+            ("pqsigner_v3.bin", 3, ("tk1", "pqsn")),
+            ("pqsigner_v3_first.bin", 3, ("tk1", "pqsn")),
+            ("pqsigner_v4_second.bin", 4, ("tk1", "pqsn")),
+        ])
+
+        # Mock joinpath().read_bytes()
+        mock_dir = MagicMock()
+        mock_file0 = MagicMock()
+        mock_file0.read_bytes.return_value = bin0
+        mock_file1 = MagicMock()
+        mock_file1.read_bytes.return_value = bin1
+        mock_file2 = MagicMock()
+        mock_file2.read_bytes.return_value = bin2
+
+        def joinpath_side_effect(filename: str) -> MagicMock:
+            if filename == "pqsigner_v3.bin":
+                return mock_file0
+            if filename == "pqsigner_v3_first.bin":
+                return mock_file1
+            if filename == "pqsigner_v4_second.bin":
+                return mock_file2
+            raise FileNotFoundError()
+
+        mock_dir.joinpath.side_effect = joinpath_side_effect
+        mock_files.return_value = mock_dir
+
+        # Test loading default
+        app0 = SignApp.load_mldsa()
+        self.assertEqual(app0.binary, bin0)
+        self.assertEqual(app0.version, 3)
+        self.assertEqual(app0.digest, digest0)
+
+        # Test loading by exact digest
+        app1 = SignApp.load_mldsa(digest=digest1)
+        self.assertEqual(app1.binary, bin1)
+        self.assertEqual(app1.version, 3)
+        self.assertEqual(app1.digest, digest1)
+
+        # Test loading by prefix
+        app2 = SignApp.load_mldsa(digest=digest2[:8])
+        self.assertEqual(app2.binary, bin2)
+        self.assertEqual(app2.version, 4)
+
+        # Test not found
+        with self.assertRaises(ValueError) as ctx:
+            SignApp.load_mldsa(digest="nonexistent")
+        self.assertIn("No device binary found matching", str(ctx.exception))
+
+        # Test version mismatch
+        with self.assertRaises(ValueError) as ctx:
+            SignApp.load_mldsa(version=3, digest=digest2)
+        self.assertIn("No device binary found matching", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

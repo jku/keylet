@@ -1,7 +1,7 @@
 site_name: Keylet
 site_description: Client application and library for Tillitis TKey ML-DSA signer
-site_author: Keylet Authors
-repo_url: https://github.com/tillitis/keylet
+site_author: Jussi Kukkonen
+repo_url: https://github.com/jku/keylet
 edit_uri: edit/main/docs/
 
 theme:
@@ -38,7 +38,6 @@ plugins:
             show_source: true
             show_root_heading: true
             show_category_heading: true
-            inherited_members: true
 
 nav:
   - Home: index.md

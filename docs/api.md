@@ -1,19 +1,16 @@
 # API Reference
 
-This page documents the primary classes and commands used for signing payloads with the Tillitis TKey.
+This page documents the classes used for signing payloads with the Tillitis TKey. The common usage pattern is:
 
-## Signing Client
+* Construct a `SignApp`
+* Initialize a `TKeySign` signer using the app: this loads the application onto the device
+* Use the signer to sign payloads
+
+
+## ML-DSA Signer
 
 ::: keylet.TKeySign
-    options:
-      members:
-        - __init__
-        - get_pubkey
-        - sign
 
 ## Device Application Configuration
 
 ::: keylet.SignApp
-    options:
-      members:
-        - load

@@ -5,13 +5,6 @@ This page documents the lower-level protocol, framing classes, and exception hie
 ## Base TKey Client
 
 ::: keylet.tkey.TKey
-    options:
-      members:
-        - __init__
-        - send
-        - recv_response
-        - load_app
-        - disconnect
 
 ## Protocol Structures
 
