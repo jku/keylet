@@ -1,9 +1,9 @@
 # TODO: Keylet Library Setup & Development
 
 ## 1. Project Configuration & Metadata
-* [ ] Configure development dependencies using `[dependency-groups]` in `pyproject.toml`
+* [x] Configure development dependencies using `[dependency-groups]` in `pyproject.toml`
   * Add `ruff`, `mypy`, `pytest`, `pytest-cov`, and `types-pyserial` (since `pyserial` lacks inline types)
-* [ ] Add tool configurations to `pyproject.toml`
+* [x] Add tool configurations to `pyproject.toml`
   * **Ruff**: Configure linter rules (e.g. `I` for isort, `UP` for pyupgrade, `D` for pydocstyle) and formatter settings
   * **Mypy**: Enable strict type checking and configure overrides (e.g., for `serial`)
   * **Pytest**: Configure test discovery and coverage
@@ -25,8 +25,8 @@
   * Expose loaded device binary version/hash programmatically
 
 ## 4. Testing
-* [ ] Set up `tests/` directory
-* [ ] Implement mocked unit tests (no physical device required)
+* [x] Set up `tests/` directory
+* [x] Implement mocked unit tests (no physical device required)
   * Mock serial communication to test protocol framing, application loading, and signing flow
   * Take inspiration from `../securesystemslib/tests/test_tkey_signer.py`
 * [ ] Implement integration/device-dependent tests
