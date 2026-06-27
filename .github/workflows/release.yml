@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@f59926e2e5b41075beaa4cb803a67035cf086c0e # v5.2.1
+        with:
+          enable-cache: false
+
+      - name: Build package
+        run: uv build
+
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@0b2256b8c4f2f3540a5a3a186518f8f9024f86d2 # v4.3.4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish-to-pypi:
+    name: Publish Python distribution to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/keylet
+    permissions:
+      id-token: write  # Mandatory for OIDC trusted publishing
+      contents: read
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372ec86d1d0 # v4.1.8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@ec4c70debd93cc29302487b2f15e718b577ccbe6 # v1.8.14

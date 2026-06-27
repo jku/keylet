@@ -34,11 +34,10 @@
   * Exclude these from default test runs (e.g., using a custom pytest marker like `@pytest.mark.device`)
 
 ## 5. CI/CD & Quality Assurance
-* [ ] Add GitHub Actions workflows (`.github/workflows/`)
-  * **Lint & Typecheck**: Run `ruff check`, `ruff format --check`, and `mypy`
-  * **Test**: Run unit tests on multiple Python versions (3.10+)
+* [x] Add GitHub Actions workflows (`.github/workflows/`)
+  * **CI**: Run `ruff check`, `ruff format --check`, `mypy`, and `pytest` on a Python matrix (3.10+)
   * **Security**: Run `zizmor` on GitHub Actions workflows
-* [ ] Add pre-commit configuration (`.pre-commit-config.yaml`) for local linting
+  * **Release**: Build and publish to PyPI using OIDC trusted publishing when a version tag (`v*`) is pushed
 * [ ] Add License file (MIT) and ensure copyright/license headers are present in source files
 
 ## 6. Documentation
