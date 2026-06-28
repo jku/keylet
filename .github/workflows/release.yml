@@ -18,7 +18,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@f59926e2e5b41075beaa4cb803a67035cf086c0e # v5.2.1
+        uses: astral-sh/setup-uv@b5f58b2abc5763ade55e4e9d0fe52cd1ff7979ca # v5.2.1
         with:
           enable-cache: false
 
