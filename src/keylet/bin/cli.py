@@ -12,16 +12,12 @@ from keylet.tkey import TKeyNotFoundError
 from keylet.tkey_sign import SignApp, TKeySign
 
 
-def get_signer(device: str | None, passphrase: str | None) -> TKeySign:
-    """Helper to initialize TKeySign with the default device signer binary."""
-    app = SignApp.load_mldsa()
-    return TKeySign(app, device=device, secret=passphrase)
-
-
 def cmd_pubkey(args: argparse.Namespace) -> int:
     try:
-        with get_signer(args.device, args.passphrase) as signer:
+        app = SignApp.load_mldsa(digest=args.digest)
+        with TKeySign(app, secret=args.passphrase) as signer:
             pubkey = signer.get_pubkey()
+            print(f"Using device app with digest {app.digest[:7]}.")
             if args.output:
                 Path(args.output).write_bytes(pubkey)
                 print(f"Public key written to {args.output}")
@@ -41,7 +37,9 @@ def cmd_sign(args: argparse.Namespace) -> int:
 
     try:
         data = file_path.read_bytes()
-        with get_signer(args.device, args.passphrase) as signer:
+        app = SignApp.load_mldsa(digest=args.digest)
+        with TKeySign(app, secret=args.passphrase) as signer:
+            print(f"Using device app with digest {app.digest[:7]}.")
             print("Please touch the TKey device when it flashes to sign...")
             signature = signer.sign(data)
 
@@ -77,8 +75,10 @@ def cmd_verify(args: argparse.Namespace) -> int:
         if args.pubkey:
             pubkey_bytes = Path(args.pubkey).read_bytes()
         else:
-            print("Retrieving public key from device...")
-            with get_signer(args.device, args.passphrase) as signer:
+            app = SignApp.load_mldsa(digest=args.digest)
+            with TKeySign(app, secret=args.passphrase) as signer:
+                print(f"Using device app with digest {app.digest[:7]}.")
+                print("Retrieving public key from device...")
                 pubkey_bytes = signer.get_pubkey()
 
         # Verify signature using cryptography library
@@ -98,9 +98,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Tillitis TKey Keylet CLI testing tool"
     )
-    parser.add_argument(
-        "--device", help="Serial port of the TKey device (e.g. /dev/ttyACM0)"
-    )
+    parser.add_argument("--digest", help="The digest of the device application to use")
     parser.add_argument("--passphrase", help="User Supplied Secret (passphrase)")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
