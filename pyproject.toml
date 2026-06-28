@@ -1,7 +1,7 @@
 [project]
 name = "keylet"
 version = "0.1.0"
-description = "Client application Tillitis TKey ML-DSA signer"
+description = "Client application for Tillitis TKey hardware ML-DSA signer"
 readme = "README.md"
 authors = [
     { name = "Jussi Kukkonen", email = "jkukkonen@google.com" }
@@ -15,17 +15,14 @@ dependencies = [
 [project.scripts]
 keylet = "keylet.bin.cli:main"
 
-
 [dependency-groups]
 dev = [
-    "mypy>=1.10.0",
-    "pytest>=8.0.0",
-    "pytest-cov>=4.1.0",
-    "ruff>=0.3.0",
-    "types-pyserial>=3.5.0.20240310",
-    "zizmor>=0.8.0",
-    "zensical>=0.0.46",
-    "mkdocstrings[python]>=1.0.4",
+    "mypy",
+    "pytest",
+    "ruff",
+    "zizmor",
+    "zensical",
+    "mkdocstrings[python]",
 ]
 
 [build-system]
@@ -34,7 +31,6 @@ build-backend = "uv_build"
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
 
 [tool.ruff.lint]
 select = [
@@ -60,5 +56,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 markers = [
-    "device: tests requiring a physical TKey device running a no-touch binary",
+    "device: tests that require a physical TKey device",
 ]
