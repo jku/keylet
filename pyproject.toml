@@ -42,8 +42,28 @@ select = [
     "C4",   # flake8-comprehensions
     "UP",   # pyupgrade
     "RUF",  # Ruff-specific rules
+    "S",    # flake8-bandit (Security)
+    "SIM",  # flake8-simplify
+    "PT",   # flake8-pytest-style
+    "PTH",  # flake8-use-pathlib
+    "TID",  # flake8-tidy-imports
+    "T20",  # flake8-print
+    "ARG",  # flake8-unused-arguments
+    "SIM",  # flake8-simplify
 ]
 ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"src/keylet/bin/cli.py" = ["T201"]
+"tests/**" = [
+    "S101",   # Use of assert
+    "S105",   # Possible hardcoded password
+    "PT009",  # Use regular assert instead of unittest assertEqual
+    "PT027",  # Use pytest.raises instead of unittest assertRaises
+    "ARG002", # Unused method argument (common with mocks)
+]
+
+
 
 [tool.mypy]
 python_version = "3.10"
