@@ -1,5 +1,7 @@
 # Keylet
 
+[![keylet on PyPI](https://img.shields.io/pypi/v/keylet.svg)](https://pypi.org/project/keylet/) [![GitHub](https://img.shields.io/badge/GitHub-jku%2Fkeylet-blue?logo=github)](https://github.com/jku/keylet)
+
 Keylet is a Python client library and CLI tool for the Tillitis TKey hardware cryptographic key, specifically supporting the ML-DSA signer application.
 
 ## Installation
