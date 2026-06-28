@@ -50,7 +50,9 @@ class SignApp:
         return hashlib.blake2s(self.binary, digest_size=32).hexdigest()
 
     @classmethod
-    def load_mldsa(cls, version: int | None = None, digest: str | None = None) -> SignApp:
+    def load_mldsa(
+        cls, version: int | None = None, digest: str | None = None
+    ) -> SignApp:
         """Load a ML-DSA signer application from package resources.
 
         If a digest (or prefix) is provided, it returns the binary matching the

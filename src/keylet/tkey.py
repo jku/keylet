@@ -52,6 +52,7 @@ class Rsp:
         id: The response identifier byte.
         len_idx: The length index indicating the expected data size.
     """
+
     id: int
     len_idx: int
 
@@ -66,6 +67,7 @@ class Cmd:
         len_idx: The length index indicating the payload data size.
         valid_responses: A tuple of acceptable responses for this command.
     """
+
     id: int
     endpoint: int
     len_idx: int
@@ -279,9 +281,11 @@ class TKey:
 
         Raises:
             TKeyError: If the TKey is not connected.
-            TKeyIOError: If reading the response from the serial port fails or returns no data.
-            TKeyProtocolError: If the response status is not OK, the response length is invalid,
-                the frame ID/endpoint mismatch, or the response ID is unexpected.
+            TKeyIOError: If reading the response from the serial port fails
+                or returns no data.
+            TKeyProtocolError: If the response status is not OK, the response
+                length is invalid, the frame ID/endpoint mismatch, or the
+                response ID is unexpected.
         """
         if self._conn is None:
             raise TKeyError("TKey is not connected")
@@ -340,7 +344,8 @@ class TKey:
 
         Args:
             app_binary: The raw bytes of the application binary.
-            secret: Optional User Supplied Secret (passphrase) to configure the app with.
+            secret: Optional User Supplied Secret (passphrase) to configure
+                the app with.
 
         Returns:
             True if the application was successfully loaded, False if the

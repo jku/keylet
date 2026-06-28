@@ -303,11 +303,13 @@ class TestTKeySign(unittest.TestCase):
 
         # Configure the mock registry
         mock_embedded.clear()
-        mock_embedded.extend([
-            ("pqsigner_v3.bin", 3, ("tk1", "pqsn")),
-            ("pqsigner_v3_first.bin", 3, ("tk1", "pqsn")),
-            ("pqsigner_v4_second.bin", 4, ("tk1", "pqsn")),
-        ])
+        mock_embedded.extend(
+            [
+                ("pqsigner_v3.bin", 3, ("tk1", "pqsn")),
+                ("pqsigner_v3_first.bin", 3, ("tk1", "pqsn")),
+                ("pqsigner_v4_second.bin", 4, ("tk1", "pqsn")),
+            ]
+        )
 
         # Mock joinpath().read_bytes()
         mock_dir = MagicMock()
