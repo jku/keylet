@@ -15,6 +15,11 @@ dependencies = [
 [project.scripts]
 keylet = "keylet.bin.cli:main"
 
+[project.urls]
+Issues = "https://github.com/jku/keylet/issues"
+Source = "https://github.com/jku/keylet"
+Documentation = "https://jku.github.io/keylet/"
+
 [dependency-groups]
 dev = [
     "mypy",
