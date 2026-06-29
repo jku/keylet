@@ -1,6 +1,6 @@
 [project]
 name = "keylet"
-version = "0.1.0"
+version = "0.2.0"
 description = "Client application for Tillitis TKey hardware ML-DSA signer"
 readme = "README.md"
 authors = [
