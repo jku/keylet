@@ -24,7 +24,7 @@ def device_signer() -> Generator[TKeySign, None, None]:
         pytest.fail(f"Test binary not found at {TEST_BIN_PATH}")
 
     binary = TEST_BIN_PATH.read_bytes()
-    test_app = SignApp(binary, version=3, name=("tk1", "pqnt"))
+    test_app = SignApp(binary, 3, ("tk1", "pqnt"), 2420, 1312)
     passphrase = os.environ.get("TKEY_TEST_PASSPHRASE")
 
     try:

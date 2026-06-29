@@ -168,7 +168,7 @@ class TestTKeySign(unittest.TestCase):
         mock_get_connection.return_value = mock_conn
 
         # Instantiate TKeySign (this triggers load_app since it starts in FW mode)
-        app = SignApp(binary=app_binary, version=1, key_size=128, sig_size=64)
+        app = SignApp(app_binary, 1, ("", ""), 64, 128)
         tkeysign = TKeySign(app=app, device=None)
 
         # Verify that it loaded successfully
@@ -216,6 +216,77 @@ class TestTKeySign(unittest.TestCase):
 
     @patch.object(TKeySign, "_find_device", return_value="/dev/ttyACM0")
     @patch.object(TKeySign, "_get_connection")
+    def test_ed25519_sign_flow_and_host_verification(
+        self, mock_get_connection: MagicMock, mock_find_device: MagicMock
+    ) -> None:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+        private_key = Ed25519PrivateKey.generate()
+        pubkey_bytes = private_key.public_key().public_bytes_raw()
+
+        message = b"hello world"
+        sig_data = private_key.sign(message)
+
+        app_binary = b"fake_ed25519_app_binary"
+        app_digest = hashlib.blake2s(app_binary, digest_size=32).digest()
+
+        # 1. NAME_VERSION
+        fw_response = make_response_frame(
+            fid=1, eid=2, status=0, rsp=FwRsp.NAME_VERSION, data=b"tk1 " + b"mkdf"
+        )
+        # 2. LOAD_APP
+        load_app_response = make_response_frame(
+            fid=2, eid=2, status=0, rsp=FwRsp.LOAD_APP, data=b"\x00"
+        )
+        # 3. LOAD_APP_DATA
+        load_app_data_response = make_response_frame(
+            fid=3,
+            eid=2,
+            status=0,
+            rsp=FwRsp.LOAD_APP_DATA_READY,
+            data=b"\x00" + app_digest,
+        )
+
+        mock_conn = MockStreamConnection(
+            reads=[fw_response, load_app_response, load_app_data_response]
+        )
+        mock_get_connection.return_value = mock_conn
+
+        app = SignApp(app_binary, 3, ("tk1", "sign"), 64, 32)
+        tkeysign = TKeySign(app=app, device=None)
+
+        # Mock GET_PUBKEY response
+        pubkey_response = make_response_frame(
+            fid=0, eid=3, status=0, rsp=SignRsp.GET_PUBKEY, data=pubkey_bytes
+        )
+
+        mock_conn.reads.extend([pubkey_response])
+        pubkey = tkeysign.get_pubkey()
+        self.assertEqual(pubkey, pubkey_bytes)
+
+        # Mock SET_SIZE, LOAD_DATA, GET_SIG
+        set_size_resp = make_response_frame(
+            fid=1, eid=3, status=0, rsp=SignRsp.SET_SIZE, data=b"\x00"
+        )
+        load_data_resp = make_response_frame(
+            fid=2, eid=3, status=0, rsp=SignRsp.LOAD_DATA, data=b"\x00"
+        )
+        get_sig_resp = make_response_frame(
+            fid=3, eid=3, status=0, rsp=SignRsp.GET_SIG, data=b"\x00" + sig_data
+        )
+
+        mock_conn.reads.extend([set_size_resp, load_data_resp, get_sig_resp])
+        signature = tkeysign.sign(message, pub_key=pubkey)
+        self.assertEqual(signature, sig_data)
+
+        # Verify on host using cryptography
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+        host_pubkey = Ed25519PublicKey.from_public_bytes(pubkey)
+        host_pubkey.verify(signature, message)
+
+    @patch.object(TKeySign, "_find_device", return_value="/dev/ttyACM0")
+    @patch.object(TKeySign, "_get_connection")
     def test_load_app_hashes_secret(
         self, mock_get_connection: MagicMock, mock_find_device: MagicMock
     ) -> None:
@@ -257,7 +328,7 @@ class TestTKeySign(unittest.TestCase):
         mock_get_connection.return_value = mock_conn
 
         secret = "my_super_secret_passphrase"
-        app = SignApp(binary=b"mock_app_data", version=3, key_size=128, sig_size=64)
+        app = SignApp(b"mock_app_data", 3, ("name0", "name1"), 128, 64)
         tk = TKeySign(app=app, device=None, secret=secret)
         tk.disconnect()
 
@@ -290,7 +361,7 @@ class TestTKeySign(unittest.TestCase):
     @patch("keylet.tkey_sign._EMBEDDED_MLDSA_BINS", new_callable=list)
     def test_sign_app_load_by_digest(
         self,
-        mock_embedded: list[tuple[str, int, tuple[str, str]]],
+        mock_embedded: list[tuple[str, int]],
         mock_files: MagicMock,
     ) -> None:
         bin0 = b"binary_zero_data"
@@ -305,9 +376,9 @@ class TestTKeySign(unittest.TestCase):
         mock_embedded.clear()
         mock_embedded.extend(
             [
-                ("pqsigner_v3.bin", 3, ("tk1", "pqsn")),
-                ("pqsigner_v3_first.bin", 3, ("tk1", "pqsn")),
-                ("pqsigner_v4_second.bin", 4, ("tk1", "pqsn")),
+                ("pqsigner_v3.bin", 3),
+                ("pqsigner_v3_first.bin", 3),
+                ("pqsigner_v4_second.bin", 4),
             ]
         )
 

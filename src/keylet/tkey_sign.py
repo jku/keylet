@@ -17,11 +17,15 @@ logger = logging.getLogger(__name__)
 MU_SIZE = (64).to_bytes(4, byteorder="little")
 
 
-# Static registry of all signer binaries packaged in keylet.resources.
-# First binary in the list is the default binary.
-# Format: (filename, version, name)
-_EMBEDDED_MLDSA_BINS: list[tuple[str, int, tuple[str, str]]] = [
-    ("pqsigner_v3.bin", 3, ("tk1", "pqsn")),
+# Static registry of signer binaries
+# First binary in each list is the default binary.
+# Format: (filename, version)
+_EMBEDDED_MLDSA_BINS: list[tuple[str, int]] = [
+    ("pqsigner_v3.bin", 3),
+]
+
+_EMBEDDED_ED25519_BINS: list[tuple[str, int]] = [
+    ("ed25519signer_v3.bin", 3),
 ]
 
 
@@ -32,22 +36,60 @@ class SignApp:
     Attributes:
         binary: The raw bytes of the device application binary.
         version: The version number of the device application.
-        name: A tuple representing the expected firmware name and app name
-            on the device (defaults to `("tk1", "pqsn")`).
-        sig_size: The size of the generated signature in bytes (defaults to 2420).
-        key_size: The size of the public key in bytes (defaults to 1312).
+        name: Device application name tuple.
+        sig_size: The size of the generated signature in bytes.
+        key_size: The size of the public key in bytes.
     """
 
     binary: bytes
     version: int
-    name: tuple[str, str] = ("tk1", "pqsn")
-    sig_size: int = 2420
-    key_size: int = 1312
+    name: tuple[str, str]
+    sig_size: int
+    key_size: int
 
     @property
     def digest(self) -> str:
         """Return the BLAKE2s-256 hex digest of the application binary."""
         return hashlib.blake2s(self.binary, digest_size=32).hexdigest()
+
+    @classmethod
+    def _find_binary(
+        cls, version: int | None, digest: str | None, bins: list[tuple[str, int]]
+    ) -> tuple[bytes, int]:
+        resources_dir = importlib.resources.files("keylet.resources")
+        matches = []
+
+        # Scan registered binaries
+        for filename, file_ver in bins:
+            # Filter by version if requested
+            if version is not None and file_ver != version:
+                continue
+
+            binary = resources_dir.joinpath(filename).read_bytes()
+            file_digest = hashlib.blake2s(binary, digest_size=32).hexdigest()
+
+            # Filter by digest if requested
+            if digest is not None and not file_digest.startswith(digest.lower()):
+                continue
+
+            matches.append((binary, file_ver))
+
+            if digest is None and version is None:
+                # First binary is the default one
+                break
+
+        if not matches:
+            raise ValueError(
+                f"No device binary found matching: version={version}, digest={digest}"
+            )
+
+        if len(matches) > 1:
+            raise ValueError(
+                f"Multiple device binaries found matching: version={version}, "
+                f"digest={digest}."
+            )
+
+        return matches[0]
 
     @classmethod
     def load_mldsa(
@@ -73,41 +115,36 @@ class SignApp:
             ValueError: If no binary matches the criteria, or if the search
                 is ambiguous (matches multiple binaries).
         """
-        resources_dir = importlib.resources.files("keylet.resources")
-        matches = []
 
-        # Scan registered binaries
-        for filename, file_ver, name in _EMBEDDED_MLDSA_BINS:
-            # Filter by version if requested
-            if version is not None and file_ver != version:
-                continue
+        binary, version = cls._find_binary(version, digest, _EMBEDDED_MLDSA_BINS)
+        return cls(binary, version, ("tk1", "pqsn"), 2420, 1312)
 
-            binary = resources_dir.joinpath(filename).read_bytes()
-            file_digest = hashlib.blake2s(binary, digest_size=32).hexdigest()
+    @classmethod
+    def load_ed25519(
+        cls, version: int | None = None, digest: str | None = None
+    ) -> SignApp:
+        """Load a Ed25519 signer application from package resources.
 
-            # Filter by digest if requested
-            if digest is not None and not file_digest.startswith(digest.lower()):
-                continue
+        If a digest (or prefix) is provided, it returns the binary matching the
+        digest. If a version is provided, it filters by version. If neither is
+        provided, current default binary is loaded.
 
-            matches.append((binary, file_ver, name, filename))
+        TKey key derivation depends on the application binary, so users who want a
+        specific key must provide the binary digest.
 
-            if digest is None and version is None:
-                # First binary is the default one
-                break
+        Args:
+            version: The version of the signer application to load.
+            digest: A BLAKE2s-256 hex digest (or prefix) of the target binary.
 
-        if not matches:
-            raise ValueError(
-                f"No device binary found matching: version={version}, digest={digest}"
-            )
+        Returns:
+            An instance of SignApp configured with the loaded binary.
 
-        if len(matches) > 1:
-            raise ValueError(
-                f"Multiple device binaries found matching: version={version}, "
-                f"digest={digest}."
-            )
-
-        matched_binary, matched_version, matched_name, _ = matches[0]
-        return cls(matched_binary, matched_version, matched_name)
+        Raises:
+            ValueError: If no binary matches the criteria, or if the search
+                is ambiguous (matches multiple binaries).
+        """
+        binary, version = cls._find_binary(version, digest, _EMBEDDED_ED25519_BINS)
+        return cls(binary, version, ("tk1", "sign"), 64, 32)
 
 
 class SignRsp:
@@ -135,9 +172,10 @@ class SignCmd:
 class TKeySign(TKey):
     """Client for communicating with the TKey signer application.
 
-    This class extends the base TKey client to implement public key retrieval and
-    signing as defined in the
-    [tkey-pq-device-signer protocol](https://github.com/tillitis/tkey-pq-device-signer).
+    This class implements public key retrieval and signing as defined in the
+    [tkey-pq-device-signer protocol](https://github.com/tillitis/tkey-pq-device-signer)
+    but is also compatible with the
+    [tkey-device-signer protocol](https://github.com/tillitis/tkey-device-signer).
     """
 
     def __init__(
@@ -168,6 +206,7 @@ class TKeySign(TKey):
         super().__init__(device)
         self.key_size = app.key_size
         self.sig_size = app.sig_size
+        self.name = app.name
 
         try:
             if not self.load_app(app.binary, secret):
@@ -215,10 +254,12 @@ class TKeySign(TKey):
         return bytes(pubkey)
 
     def sign(self, message: bytes, pub_key: bytes | None = None) -> bytes:
-        """Sign a message using ML-DSA.
+        """Sign a payload.
 
-        Computes the FIPS 204 external mu using the message and public key,
-        sends it to the device, and retrieves the signature.
+        Sends payload to device and retrieves the signature.
+
+        For ML-DSA, the FIPS 204 external mu is computed using the message
+        and public key: the mu is sent to device instead of payload.
 
         Note:
             This method blocks and waits (up to 60 seconds) for the user to touch
@@ -226,8 +267,8 @@ class TKeySign(TKey):
 
         Args:
             message: The raw bytes of the message/payload to sign.
-            pub_key: The public key bytes used to compute the external mu.
-                If None, the public key is retrieved from the device.
+            pub_key: The public key bytes (only needed for ML-DSA). If not provided,
+                key is retrieved from device.
 
         Returns:
             The generated signature as raw bytes.
@@ -237,18 +278,30 @@ class TKeySign(TKey):
             TKeyIOError: If writing or reading from the serial port fails.
             TKeyProtocolError: If there is a framing or protocol mismatch.
         """
-        if pub_key is None:
-            pub_key = self.get_pubkey()
+        # pqsn = ML-DSA signer, pqnt = no-touch ML-DSA test signer
+        if self.name in [("tk1", "pqsn"), ("tk1", "pqnt")]:
+            # Compute FIPS 204 external mu
+            if pub_key is None:
+                pub_key = self.get_pubkey()
+            tr = hashlib.shake_256(pub_key).digest(64)
+            payload = hashlib.shake_256(tr + b"\x00\x00" + message).digest(64)
+        else:
+            payload = message
 
-        # Compute FIPS 204 external mu
-        tr = hashlib.shake_256(pub_key).digest(64)
-        mu = hashlib.shake_256(tr + b"\x00\x00" + message).digest(64)
+        # Set size
+        if len(payload) > 4096:
+            raise ValueError(f"Payload too large {len(payload)} > 4096]")
+        self.send(SignCmd.SET_SIZE, len(payload).to_bytes(4, byteorder="little"))
 
-        # Set size: in our case mu is always 64 bytes
-        self.send(SignCmd.SET_SIZE, MU_SIZE)
-
-        # Load data: mu fits in single frame
-        self.send(SignCmd.LOAD_DATA, mu)
+        # Load data in chunks
+        chunk_size = 127
+        offset = 0
+        while offset < len(payload):
+            chunk = payload[offset : offset + chunk_size]
+            rx = self.send(SignCmd.LOAD_DATA, chunk)
+            if rx[2] != 0:
+                raise TKeyError(f"LoadData chunk NOK status: {rx[2]}")
+            offset += chunk_size
 
         # Trigger signing (blocks waiting for touch) and read first frame
         rx = self.send(SignCmd.GET_SIG, timeout=60)

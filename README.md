@@ -2,7 +2,7 @@
 
 [![keylet on GitHub](https://img.shields.io/badge/GitHub-jku%2Fkeylet-blue?logo=github)](https://github.com/jku/keylet) [![keylet on PyPI](https://img.shields.io/pypi/v/keylet.svg)](https://pypi.org/project/keylet/) [![keylet documentation](https://img.shields.io/badge/Documentation-blue)](https://jku.github.io/keylet/)
 
-Keylet is a Python client library and CLI tool for the [Tillitis TKey](https://www.tillitis.se/products/tkey/) security token, and implements a ML-DSA signer application for TKey.
+Keylet is a Python client library and CLI tool for the [Tillitis TKey](https://www.tillitis.se/products/tkey/) security token, and implements a ML-DSA / Ed25519 signer application for TKey.
 
 ## Installation
 

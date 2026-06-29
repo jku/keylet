@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA44PublicKey
 
 from keylet.tkey import TKeyNotFoundError
@@ -14,7 +15,10 @@ from keylet.tkey_sign import SignApp, TKeySign
 
 def cmd_pubkey(args: argparse.Namespace) -> int:
     try:
-        app = SignApp.load_mldsa(digest=args.digest)
+        if args.type == "ed25519":
+            app = SignApp.load_ed25519(digest=args.digest)
+        else:
+            app = SignApp.load_mldsa(digest=args.digest)
         with TKeySign(app, secret=args.passphrase) as signer:
             pubkey = signer.get_pubkey()
             print(f"Using device app with digest {app.digest[:7]}.")
@@ -37,7 +41,10 @@ def cmd_sign(args: argparse.Namespace) -> int:
 
     try:
         data = file_path.read_bytes()
-        app = SignApp.load_mldsa(digest=args.digest)
+        if args.type == "ed25519":
+            app = SignApp.load_ed25519(digest=args.digest)
+        else:
+            app = SignApp.load_mldsa(digest=args.digest)
         with TKeySign(app, secret=args.passphrase) as signer:
             print(f"Using device app with digest {app.digest[:7]}.")
             print("Please touch the TKey device when it flashes to sign...")
@@ -75,15 +82,22 @@ def cmd_verify(args: argparse.Namespace) -> int:
         if args.pubkey:
             pubkey_bytes = Path(args.pubkey).read_bytes()
         else:
-            app = SignApp.load_mldsa(digest=args.digest)
+            if args.type == "ed25519":
+                app = SignApp.load_ed25519(digest=args.digest)
+            else:
+                app = SignApp.load_mldsa(digest=args.digest)
             with TKeySign(app, secret=args.passphrase) as signer:
                 print(f"Using device app with digest {app.digest[:7]}.")
                 print("Retrieving public key from device...")
                 pubkey_bytes = signer.get_pubkey()
 
         # Verify signature using cryptography library
-        pubkey = MLDSA44PublicKey.from_public_bytes(pubkey_bytes)
-        pubkey.verify(sig_bytes, file_bytes)
+        if args.type == "ed25519":
+            ed_pubkey = Ed25519PublicKey.from_public_bytes(pubkey_bytes)
+            ed_pubkey.verify(sig_bytes, file_bytes)
+        else:
+            ml_pubkey = MLDSA44PublicKey.from_public_bytes(pubkey_bytes)
+            ml_pubkey.verify(sig_bytes, file_bytes)
         print("Verification successful!")
         return 0
     except InvalidSignature:
@@ -100,6 +114,13 @@ def main() -> None:
     )
     parser.add_argument("--digest", help="The digest of the device application to use")
     parser.add_argument("--passphrase", help="User Supplied Secret (passphrase)")
+    parser.add_argument(
+        "-t",
+        "--type",
+        choices=["ml-dsa", "ed25519"],
+        default="ml-dsa",
+        help="Signer type (default: %(default)s)",
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
