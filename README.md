@@ -12,7 +12,7 @@ pip install keylet
 
 ## CLI Usage
 
-The package installs a `keylet` command-line tool forsigning and verification. This is primarily a test/demo application for the library.
+The package installs a `keylet` command-line tool for signing and verification. This is primarily a test/demo application for the library.
 
 ```bash
 # Sign without a passphrase, then verify
