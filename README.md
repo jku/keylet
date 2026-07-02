@@ -8,7 +8,8 @@ TKeys unique feature is that it has no long-term memory: signing keys are _alway
 
 The unique design leads to some API peculiarities:
 * User Supplied Secret (passphrase) is not directly validated by keylet: a "wrong" passphrase will just lead to using a different signing key. In practice the calling application should look at `TKeySign.get_pubkey()`: if the key is unexpected, then potentially the wrong passphrase was used
-* Signer initialization (`TKeySign()`) has an optimization where the initialization succeeds if the TKey has already been initialized with matching device application name and version. Unfortunately `keylet` cannot confirm that the exact device binary is the expected one or that the passphrase is still the same one (but again, the calling application can compare `TKeySign.get_pubkey()` to the expected key). The only way to change the initialization values (device application and passphrase) is to unplug the device and start over.
+* Signer initialization has an optimization where the initialization succeeds if the TKey has already been initialized with matching device application name and version. Unfortunately `keylet` cannot confirm that the exact device binary is the expected one or that the passphrase is still the same one (but again, the calling application can compare `TKeySign.get_pubkey()` to the expected key)
+* The only way to change the initialization values (device application and passphrase) is to unplug the device and start over.
 
 ## Installation
 
