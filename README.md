@@ -4,7 +4,7 @@
 
 Keylet is a Python client library and CLI tool for the [Tillitis TKey](https://www.tillitis.se/products/tkey/) security token, and implements a ML-DSA / Ed25519 signer application for TKey.
 
-TKeys unique feature is that it has no long-term memory: signing keys are _always_ generated from a seed at runtime. This seed is built by combining a Unique Device Secret, Device Application hash and an optional User Supplied Secret. Both the device application and User Supplied Secret are provided at runtime. 
+TKeys unique feature is that it has no long-term memory: signing keys are _always_ generated from a seed at runtime. This seed is built by combining a Unique Device Secret, a Device Application hash and an optional User Supplied Secret. Both the Device Application and User Supplied Secret are provided at runtime by `keylet`. 
 
 The unique design leads to some API peculiarities:
 * User Supplied Secret (passphrase) is not directly validated by keylet: a "wrong" passphrase will just lead to using a different signing key. In practice the calling application should look at `TKeySign.get_pubkey()`: if the key is unexpected, then potentially the wrong passphrase was used
