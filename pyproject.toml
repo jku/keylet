@@ -16,9 +16,10 @@ dependencies = [
 keylet = "keylet.bin.cli:main"
 
 [project.urls]
+Documentation = "https://jku.github.io/keylet/"
+Homepage = "https://github.com/jku/keylet"
 Issues = "https://github.com/jku/keylet/issues"
 Source = "https://github.com/jku/keylet"
-Documentation = "https://jku.github.io/keylet/"
 
 [dependency-groups]
 dev = [
@@ -67,8 +68,6 @@ ignore = []
     "PT027",  # Use pytest.raises instead of unittest assertRaises
     "ARG002", # Unused method argument (common with mocks)
 ]
-
-
 
 [tool.mypy]
 python_version = "3.10"
