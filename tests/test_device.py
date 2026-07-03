@@ -51,6 +51,7 @@ def device_signer() -> Generator[TKeySign, None, None]:
         except Exception:
             pytest.fail(f"Failed to initialize TKey with test device application: {e})")
 
+
 @pytest.mark.device
 def test_device_application_load() -> None:
     binary = TEST_BIN_PATH.read_bytes()
@@ -66,7 +67,7 @@ def test_device_application_load() -> None:
     with pytest.raises(TKeyNotFoundError):
         TKeySign(test_app, device="notadevice", secret=passphrase)
 
-    fake_app = SignApp(b"0"*(APP_MAXSIZE + 1), 3, ("tk1", "pqnt"), 2420, 1312)
+    fake_app = SignApp(b"0" * (APP_MAXSIZE + 1), 3, ("tk1", "pqnt"), 2420, 1312)
     with pytest.raises(TKeyAppError, match="too large"):
         TKeySign(fake_app, secret=passphrase)
 
