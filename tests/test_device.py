@@ -18,8 +18,7 @@ from keylet.tkey_sign import SignApp, SignCmd, TKeySign
 TEST_BIN_PATH = Path(__file__).parent / "resources" / "app_no_touch.bin"
 
 
-@pytest.fixture(scope="module")
-def device_signer() -> Generator[TKeySign, None, None]:
+def _test_signer() -> TKeySign:
     if not TEST_BIN_PATH.exists():
         pytest.fail(f"Test binary not found at {TEST_BIN_PATH}")
 
@@ -28,9 +27,7 @@ def device_signer() -> Generator[TKeySign, None, None]:
     passphrase = os.environ.get("TKEY_TEST_PASSPHRASE")
 
     try:
-        signer = TKeySign(test_app, secret=passphrase)
-        yield signer
-        signer.disconnect()
+        return TKeySign(test_app, secret=passphrase)
     except TKeyNotFoundError:
         pytest.fail("TKey device not found. Please ensure it is plugged in.")
     except TKeyAppError as e:
@@ -52,32 +49,52 @@ def device_signer() -> Generator[TKeySign, None, None]:
             pytest.fail(f"Failed to initialize TKey with test device application: {e})")
 
 
+@pytest.fixture(scope="module")
+def device_signer() -> Generator[TKeySign, None, None]:
+    signer = _test_signer()
+    yield signer
+    signer.disconnect()
+
+
+@pytest.mark.device
+def test_device_connections() -> None:
+    """Device can be connected to several times, but not concurrently"""
+    with _test_signer():
+        pass
+
+    with _test_signer():
+        pass
+
+    with _test_signer():
+        with pytest.raises(OSError, match="busy"):
+            _test_signer()
+        pass
+
+
+@pytest.mark.device
+def test_device_not_found() -> None:
+    test_app = SignApp(b"", 3, ("tk1", "pqnt"), 2420, 1312)
+    with pytest.raises(TKeyNotFoundError):
+        TKeySign(test_app, device="notadevice")
+
+
 @pytest.mark.device
 def test_device_application_load() -> None:
-    binary = TEST_BIN_PATH.read_bytes()
-    test_app = SignApp(binary, 3, ("tk1", "pqnt"), 2420, 1312)
-    passphrase = os.environ.get("TKEY_TEST_PASSPHRASE")
-
-    with TKeySign(test_app, secret=passphrase):
+    # make sure app is loaded first
+    with _test_signer():
         pass
-
-    with TKeySign(test_app, secret=passphrase):
-        pass
-
-    with pytest.raises(TKeyNotFoundError):
-        TKeySign(test_app, device="notadevice", secret=passphrase)
 
     fake_app = SignApp(b"0" * (APP_MAXSIZE + 1), 3, ("tk1", "pqnt"), 2420, 1312)
     with pytest.raises(TKeyAppError, match="too large"):
-        TKeySign(fake_app, secret=passphrase)
+        TKeySign(fake_app)
 
-    fake_app = SignApp(binary, 2, ("tk1", "pqnt"), 2420, 1312)
+    fake_app = SignApp(b"", 2, ("tk1", "pqnt"), 2420, 1312)
     with pytest.raises(TKeyAppError, match="unknown application"):
-        TKeySign(fake_app, secret=passphrase)
+        TKeySign(fake_app)
 
-    fake_app = SignApp(binary, 3, ("tk1", "fake"), 2420, 1312)
+    fake_app = SignApp(b"", 3, ("tk1", "fake"), 2420, 1312)
     with pytest.raises(TKeyAppError, match="unknown application"):
-        TKeySign(fake_app, secret=passphrase)
+        TKeySign(fake_app)
 
 
 @pytest.mark.device
