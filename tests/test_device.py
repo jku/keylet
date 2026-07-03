@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA44PublicKey
 
-from keylet.tkey import TKey, TKeyAppError, TKeyNotFoundError
+from keylet.tkey import APP_MAXSIZE, TKey, TKeyAppError, TKeyNotFoundError
 from keylet.tkey_sign import SignApp, SignCmd, TKeySign
 
 # Path to the no-touch test binary. This binary was built from
@@ -50,6 +50,33 @@ def device_signer() -> Generator[TKeySign, None, None]:
             )
         except Exception:
             pytest.fail(f"Failed to initialize TKey with test device application: {e})")
+
+@pytest.mark.device
+def test_device_application_load() -> None:
+    binary = TEST_BIN_PATH.read_bytes()
+    test_app = SignApp(binary, 3, ("tk1", "pqnt"), 2420, 1312)
+    passphrase = os.environ.get("TKEY_TEST_PASSPHRASE")
+
+    with TKeySign(test_app, secret=passphrase):
+        pass
+
+    with TKeySign(test_app, secret=passphrase):
+        pass
+
+    with pytest.raises(TKeyNotFoundError):
+        TKeySign(test_app, device="notadevice", secret=passphrase)
+
+    fake_app = SignApp(b"0"*(APP_MAXSIZE + 1), 3, ("tk1", "pqnt"), 2420, 1312)
+    with pytest.raises(TKeyAppError, match="too large"):
+        TKeySign(fake_app, secret=passphrase)
+
+    fake_app = SignApp(binary, 2, ("tk1", "pqnt"), 2420, 1312)
+    with pytest.raises(TKeyAppError, match="unknown application"):
+        TKeySign(fake_app, secret=passphrase)
+
+    fake_app = SignApp(binary, 3, ("tk1", "fake"), 2420, 1312)
+    with pytest.raises(TKeyAppError, match="unknown application"):
+        TKeySign(fake_app, secret=passphrase)
 
 
 @pytest.mark.device
