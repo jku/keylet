@@ -75,8 +75,11 @@ See the [API Reference](https://jku.github.io/keylet/api/) for more details.
 [uv](https://docs.astral.sh/uv/) is a required development tool.
 
 ```bash
-# run autoformat, linter and type checker
+# run linters and type checker
 make lint
+
+# Fix formatting and lint issues
+make fix
 
 # run tests
 make test
