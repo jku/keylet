@@ -1,14 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 keylet authors
 
-
 import pytest
-from _pytest.config import Config
-from _pytest.config.argparsing import Parser
-from _pytest.nodes import Item
 
 
-def pytest_addoption(parser: Parser) -> None:
+def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--device",
         action="store_true",
@@ -17,7 +13,9 @@ def pytest_addoption(parser: Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
     if config.getoption("--device"):
         # --device option is provided, do not skip
         return
