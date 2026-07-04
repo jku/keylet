@@ -1,16 +1,19 @@
 [project]
 name = "keylet"
-version = "0.2.0"
-description = "Client application for Tillitis TKey hardware ML-DSA signer"
+version = "0.2.1-dev"
+description = "Client application for Tillitis TKey hardware ML-DSA/Ed25519 signer"
 readme = "README.md"
 authors = [
     { name = "Jussi Kukkonen", email = "jkukkonen@google.com" }
 ]
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "cryptography>=48.0.0",
     "pyserial>=3.5",
 ]
+keywords = ["ML-DSA", "TKey", "Tillitis", "PQC", "sign", "signer"]
 
 [project.scripts]
 keylet = "keylet.bin.cli:main"

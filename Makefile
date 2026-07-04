@@ -6,6 +6,7 @@ lint:
 	uv run ruff format .
 	uv run ruff check .
 	uv run mypy .
+	uv run zizmor --quiet .
 
 test:
 	uv run pytest -v
