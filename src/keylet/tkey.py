@@ -128,6 +128,10 @@ class TKeyProtocolError(TKeyError):
     """Raised upon protocol errors in command or response."""
 
 
+class TKeyNOKError(TKeyProtocolError):
+    """Raised when the TKey device returns a NOK (Not OK) status."""
+
+
 class TKey:
     """Base TKey Client
 
@@ -319,7 +323,7 @@ class TKey:
                 self._conn.read(resp_len)
             except Exception as e:
                 logger.debug("Failed to read remaining bytes after NOK status: %s", e)
-            raise TKeyProtocolError("Response status code not OK (1)")
+            raise TKeyNOKError("Response status code not OK (1)")
 
         try:
             resp_data = self._conn.read(resp_len)
@@ -375,9 +379,8 @@ class TKey:
         try:
             # Query firmware name
             rx = self.send(FwCmd.NAME_VERSION)
-        except TKeyError:
-            # Not in firmware mode
-            # TODO would be nice to only do this on NOK response, not other errors
+        except TKeyNOKError:
+            # Device returned NOK: we are running an application already
             return False
 
         # we are in firmware mode. Load the app

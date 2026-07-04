@@ -11,7 +11,7 @@ from keylet.tkey import (
     FwRsp,
     Rsp,
     TKey,
-    TKeyProtocolError,
+    TKeyNOKError,
 )
 from keylet.tkey_sign import SignApp, SignRsp, TKeySign
 
@@ -130,9 +130,29 @@ class TestTKey(unittest.TestCase):
         mock_get_connection.return_value = mock_conn
 
         tkey = TKey(device=None)
-        with self.assertRaises(TKeyProtocolError) as ctx:
+        with self.assertRaises(TKeyNOKError) as ctx:
             tkey.send(FwCmd.NAME_VERSION)
         self.assertIn("Response status code not OK", str(ctx.exception))
+
+    @patch.object(TKey, "_find_device", return_value="/dev/ttyACM0")
+    @patch.object(TKey, "_get_connection")
+    def test_load_app_already_running(
+        self, mock_get_connection: MagicMock, mock_find_device: MagicMock
+    ) -> None:
+        # Response with status NOK (1) for NAME_VERSION probe
+        nok_response = make_response_frame(
+            fid=1,
+            eid=2,
+            status=1,
+            rsp=FwRsp.NAME_VERSION,
+        )
+
+        mock_conn = MockStreamConnection(reads=[nok_response])
+        mock_get_connection.return_value = mock_conn
+
+        tkey = TKey(None)
+
+        assert not tkey.load_app(b"fake_app_binary_data")
 
 
 class TestTKeySign(unittest.TestCase):
