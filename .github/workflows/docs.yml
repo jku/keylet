@@ -3,6 +3,7 @@ name: Docs
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   workflow_dispatch:
 
 permissions:
@@ -24,6 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up uv
@@ -31,16 +33,36 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install dependencies
-        run: uv sync --all-groups
+      - name: Build docs for all releases and main
+        run: |
+          mkdir -p docs-build
+          (echo dev && git tag -l "v*") | while read -r tag; do
+            echo "Processing release: $tag"
+            # Add your custom logic here, for example:
+            [[ "$tag" == "dev" ]] && git checkout main || git checkout $tag
+            uv sync --all-groups
+            uv run zensical build --strict
 
-      - name: Build documentation
-        run: uv run zensical build --strict
+            mkdir -p "docs-build/$tag"
+            mv site/* "docs-build/$tag"
+          done
+
+          # Create versions.json at root
+          (cd docs-build; printf '%s\n' * | jq -R . | jq -s 'map({version: ., title: ., aliases: []})' > versions.json)
+
+          # Create redirect to dev docs at root
+          cat <<EOF > docs-build/index.html
+          <!DOCTYPE html>
+          <html>
+          <head><meta http-equiv="refresh" content="0; url=dev/"></head>
+          <body><a href="dev/">Redirecting...</a></body>
+          </html>
+          EOF
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: ./site
+          path: ./docs-build
 
       - name: Deploy to GitHub Pages
         id: deployment
