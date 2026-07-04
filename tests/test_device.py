@@ -8,7 +8,13 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA44PublicKey
 
-from keylet.tkey import APP_MAXSIZE, TKey, TKeyAppError, TKeyNotFoundError
+from keylet.tkey import (
+    APP_MAXSIZE,
+    TKey,
+    TKeyAppError,
+    TKeyDeviceBusyError,
+    TKeyNotFoundError,
+)
 from keylet.tkey_sign import SignApp, SignCmd, TKeySign
 
 # Path to the no-touch test binary. This binary was built from
@@ -66,7 +72,7 @@ def test_device_connections() -> None:
         pass
 
     with _test_signer():
-        with pytest.raises(OSError, match="busy"):
+        with pytest.raises(TKeyDeviceBusyError, match=" is busy"):
             _test_signer()
         pass
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import logging
 import sys
@@ -111,6 +112,10 @@ class TKeyNotFoundError(TKeyError):
     """A TKey device was not found"""
 
 
+class TKeyDeviceBusyError(TKeyError):
+    """Raised when the TKey device is already in use."""
+
+
 class TKeyAppError(TKeyError):
     """Raised when loading the application fails."""
 
@@ -176,13 +181,17 @@ class TKey:
     def _get_connection(
         self, port: str, baudrate: int, timeout: float
     ) -> SerialConnection:
-        if sys.platform == "linux":
-            return RawSerialConnection(port, baudrate, timeout)
-        else:
-            try:
+        try:
+            if sys.platform == "linux":
+                return RawSerialConnection(port, baudrate, timeout)
+            else:
                 return serial.Serial(port, baudrate=baudrate, timeout=timeout)
-            except Exception as e:
-                raise TKeyError(f"Failed to open serial port {port}: {e}") from e
+        except OSError as e:
+            if e.errno in (errno.EBUSY, errno.EACCES) or "Access is denied" in str(e):
+                raise TKeyDeviceBusyError(f"TKey device {port} is busy") from e
+            raise TKeyError(f"Failed to open serial port {port}") from e
+        except Exception as e:
+            raise TKeyError(f"Failed to open serial port {port}") from e
 
     def disconnect(self) -> None:
         if self._conn is not None:
