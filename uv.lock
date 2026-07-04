@@ -220,7 +220,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -284,6 +284,7 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "types-pyserial" },
     { name = "zensical" },
     { name = "zizmor" },
 ]
@@ -300,6 +301,7 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "types-pyserial" },
     { name = "zensical" },
     { name = "zizmor" },
 ]
@@ -917,6 +919,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/12/64/da524626d3b9cc40c168a13da8335fe1c51be12c0a63685cc6db7308daae/tomli-2.4.1-cp314-cp314t-win_amd64.whl", hash = "sha256:2c1c351919aca02858f740c6d33adea0c5deea37f9ecca1cc1ef9e884a619d26", size = 121196, upload-time = "2026-03-25T20:22:01.169Z" },
     { url = "https://files.pythonhosted.org/packages/5a/cd/e80b62269fc78fc36c9af5a6b89c835baa8af28ff5ad28c7028d60860320/tomli-2.4.1-cp314-cp314t-win_arm64.whl", hash = "sha256:eab21f45c7f66c13f2a9e0e1535309cee140182a9cdae1e041d02e47291e8396", size = 100393, upload-time = "2026-03-25T20:22:02.137Z" },
     { url = "https://files.pythonhosted.org/packages/7b/61/cceae43728b7de99d9b847560c262873a1f6c98202171fd5ed62640b494b/tomli-2.4.1-py3-none-any.whl", hash = "sha256:0d85819802132122da43cb86656f8d1f8c6587d54ae7dcaf30e90533028b49fe", size = 14583, upload-time = "2026-03-25T20:22:03.012Z" },
+]
+
+[[package]]
+name = "types-pyserial"
+version = "3.5.0.20260519"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/b2/0d74759b5b40827b38f144be6e188fe117d592c218c98347d7aa4966193c/types_pyserial-3.5.0.20260519.tar.gz", hash = "sha256:0d6452781871f9af7b8598e24faa5f75d4ad50848a6fb301b4ae30b0e6ec3765", size = 20507, upload-time = "2026-05-19T05:56:16.839Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/02/53eb53c5ec22c6b81591f1a19c60cd24ac06dafae14c1580231b208749ae/types_pyserial-3.5.0.20260519-py3-none-any.whl", hash = "sha256:cfec8dbc3a60f81afad9223dff7772391ddc5067aca469a1c9d3e72f2caccfa2", size = 25321, upload-time = "2026-05-19T05:56:15.871Z" },
 ]
 
 [[package]]
