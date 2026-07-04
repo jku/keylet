@@ -66,8 +66,6 @@ select = [
 "tests/**" = [
     "S101",   # assert is ok in tests
     "S105",   # hardcoded password is ok in tests
-    "PT009",  # Use regular assert instead of unittest assertEqual
-    "PT027",  # Use pytest.raises instead of unittest assertRaises
     "ARG002", # Unused method argument (common with mocks)
 ]
 
