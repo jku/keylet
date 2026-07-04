@@ -68,3 +68,18 @@ with TKeySign(app=app, secret="hunter2") as signer:
 ```
 
 See the [API Reference](https://jku.github.io/keylet/api/) for more details.
+
+## Development
+
+[uv](https://docs.astral.sh/uv/) is a required development tool.
+
+```bash
+# run autoformat, linter and type checker
+make lint
+
+# run tests
+make test
+
+# run tests, including on-device tests
+make test-device
+```
