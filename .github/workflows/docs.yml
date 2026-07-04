@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir -p docs-build
           (echo dev && git tag -l "v*") | while read -r tag; do
-            echo "Processing release: $tag"
+            echo "::group::Processing release: $tag"
             # Add your custom logic here, for example:
             [[ "$tag" == "dev" ]] && git checkout main || git checkout $tag
             uv sync --all-groups
@@ -45,6 +45,7 @@ jobs:
 
             mkdir -p "docs-build/$tag"
             mv site/* "docs-build/$tag"
+            echo "::endgroup::"
           done
 
           # Create versions.json at root
