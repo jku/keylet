@@ -22,12 +22,9 @@ This page documents the lower-level protocol, framing classes, and exception hie
 
 ## Exceptions
 
-::: keylet.tkey.TKeyError
-
-::: keylet.tkey.TKeyNotFoundError
-
-::: keylet.tkey.TKeyAppError
-
-::: keylet.tkey.TKeyIOError
-
-::: keylet.tkey.TKeyProtocolError
+::: keylet.tkey
+    options:
+      filters:
+        - "^TKey.*Error$"
+      show_root_heading: false
+      show_category_heading: false
