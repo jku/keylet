@@ -30,14 +30,3 @@ updates:
         update-types:
           - "minor"
           - "patch"
-
-  # Workaround to pin uv version
-  - package-ecosystem: "pip"
-    directory: "/"
-    manifest-files:
-      - ".uv-version"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
-

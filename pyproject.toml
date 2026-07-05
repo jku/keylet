@@ -39,10 +39,6 @@ dev = [
 requires = ["uv_build>=0.11.23,<0.12.0"]
 build-backend = "uv_build"
 
-# Pin uv for setup-uv
-[tool.uv]
-dev-dependencies = ["uv"]
-
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
