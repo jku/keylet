@@ -25,7 +25,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync
 
       - name: Ruff check
         run: uv run ruff check .
@@ -40,10 +40,11 @@ jobs:
         run: uv run zizmor .
 
   test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -56,7 +57,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync
 
       - name: Run tests
         run: uv run pytest tests/
@@ -80,7 +81,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --locked --all-groups
+        run: uv sync --locked
 
       - name: Build package
         run: uv build
