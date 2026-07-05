@@ -34,6 +34,7 @@ dev = [
     "mkdocstrings[python]",
     "types-pyserial",
 ]
+uv = ["uv"]
 
 [build-system]
 requires = ["uv_build>=0.11.23,<0.12.0"]
