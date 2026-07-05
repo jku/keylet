@@ -17,9 +17,8 @@ logger = logging.getLogger(__name__)
 MU_SIZE = (64).to_bytes(4, byteorder="little")
 
 
-# Static registry of signer binaries
+# Static registry of signer binaries (filename, version)
 # First binary in each list is the default binary.
-# Format: (filename, version)
 _EMBEDDED_MLDSA_BINS: list[tuple[str, int]] = [
     ("pqsigner_v3.bin", 3),
 ]

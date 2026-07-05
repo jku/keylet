@@ -71,10 +71,8 @@ def test_device_connections() -> None:
     with _test_signer():
         pass
 
-    with _test_signer():
-        with pytest.raises(TKeyDeviceBusyError, match=" is busy"):
-            _test_signer()
-        pass
+    with _test_signer(), pytest.raises(TKeyDeviceBusyError, match=" is busy"):
+        _test_signer()
 
 
 @pytest.mark.device

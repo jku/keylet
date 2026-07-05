@@ -8,8 +8,7 @@ import hashlib
 import logging
 import sys
 from dataclasses import dataclass
-from types import TracebackType
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 import serial
 from serial.tools import list_ports
@@ -18,6 +17,9 @@ from keylet._serial_hack import (
     RawSerialConnection,
     SerialConnection,
 )
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +103,7 @@ class FwCmd:
     """Command to send a chunk of application binary data."""
 
 
-_TKey = TypeVar("_TKey", bound="TKey")
+Self = TypeVar("Self", bound="TKey")
 
 
 class TKeyError(Exception):
@@ -191,15 +193,17 @@ class TKey:
     ) -> SerialConnection:
         try:
             if sys.platform == "linux":
-                return RawSerialConnection(port, baudrate, timeout)
+                conn = RawSerialConnection(port, baudrate, timeout)
             else:
-                return serial.Serial(port, baudrate=baudrate, timeout=timeout)
+                conn = serial.Serial(port, baudrate=baudrate, timeout=timeout)
         except OSError as e:
             if e.errno in (errno.EBUSY, errno.EACCES) or "Access is denied" in str(e):
                 raise TKeyDeviceBusyError(f"TKey device {port} is busy") from e
             raise TKeyError(f"Failed to open serial port {port}") from e
         except Exception as e:
             raise TKeyError(f"Failed to open serial port {port}") from e
+
+        return conn
 
     def disconnect(self) -> None:
         if self._conn is not None:
@@ -212,7 +216,7 @@ class TKey:
     def __del__(self) -> None:
         self.disconnect()
 
-    def __enter__(self: _TKey) -> _TKey:
+    def __enter__(self: Self) -> Self:
         return self
 
     def __exit__(

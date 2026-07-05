@@ -98,11 +98,11 @@ class RawSerialConnection:
             # 4. Acquire exclusive access
             tiocexcl = 0x540C
             fcntl.ioctl(fd, tiocexcl, 0)
-
-            return fd
         except Exception:
             os.close(fd)
             raise
+        else:
+            return fd
 
     def write(self, data: bytes) -> int:
         if self._fd is None:

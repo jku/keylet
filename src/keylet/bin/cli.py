@@ -2,6 +2,7 @@
 # Copyright (c) 2026 keylet authors
 
 import argparse
+import sys
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
@@ -25,9 +26,9 @@ def _app_signer(args: argparse.Namespace) -> Generator[TKeySign, None, None]:
             print(f"Using {args.type} device app with digest {app.digest[:7]}")
             yield signer
     except TKeyNotFoundError as e:
-        exit(f"Error: {e}")
+        sys.exit(f"Error: {e}")
     except TKeyUnexpectedAppError as e:
-        exit(f"Error: {e}")
+        sys.exit(f"Error: {e}")
 
 
 def cmd_pubkey(args: argparse.Namespace) -> None:
@@ -43,7 +44,7 @@ def cmd_pubkey(args: argparse.Namespace) -> None:
 def cmd_sign(args: argparse.Namespace) -> None:
     file_path = Path(args.file)
     if not file_path.exists():
-        exit(f"Error: File {args.file} does not exist")
+        sys.exit(f"Error: File {args.file} does not exist")
 
     data = file_path.read_bytes()
     with _app_signer(args) as signer:
@@ -58,7 +59,7 @@ def cmd_sign(args: argparse.Namespace) -> None:
 def cmd_verify(args: argparse.Namespace) -> None:
     file_path = Path(args.file)
     if not file_path.exists():
-        exit(f"Error: File {args.file} does not exist")
+        sys.exit(f"Error: File {args.file} does not exist")
 
     sig_path = (
         Path(args.signature)
@@ -66,7 +67,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
         else file_path.with_suffix(file_path.suffix + ".signature")
     )
     if not sig_path.exists():
-        exit(f"Error: Signature file {sig_path} does not exist")
+        sys.exit(f"Error: Signature file {sig_path} does not exist")
 
     file_bytes = file_path.read_bytes()
     sig_bytes = sig_path.read_bytes()
@@ -88,7 +89,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
             ml_pubkey = MLDSA44PublicKey.from_public_bytes(pubkey_bytes)
             ml_pubkey.verify(sig_bytes, file_bytes)
     except InvalidSignature:
-        exit("Verification failed: Invalid signature")
+        sys.exit("Verification failed: Invalid signature")
 
     print("Verification successful!")
 

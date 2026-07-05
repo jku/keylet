@@ -6,6 +6,10 @@ from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
 
 from keylet.tkey import (
     PROTO_DATA_LENGTH,
@@ -235,8 +239,6 @@ def test_load_app_and_sign_flow(mock_get_connection: MagicMock) -> None:
 def test_ed25519_sign_flow_and_host_verification(
     mock_get_connection: MagicMock,
 ) -> None:
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-
     private_key = Ed25519PrivateKey.generate()
     pubkey_bytes = private_key.public_key().public_bytes_raw()
 
@@ -296,8 +298,6 @@ def test_ed25519_sign_flow_and_host_verification(
     assert signature == sig_data
 
     # Verify on host using cryptography
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-
     host_pubkey = Ed25519PublicKey.from_public_bytes(pubkey)
     host_pubkey.verify(signature, message)
 
@@ -410,7 +410,7 @@ def test_sign_app_load_by_digest(
             return mock_file1
         if filename == "pqsigner_v4_second.bin":
             return mock_file2
-        raise FileNotFoundError()
+        raise FileNotFoundError
 
     mock_dir.joinpath.side_effect = joinpath_side_effect
     mock_files.return_value = mock_dir
