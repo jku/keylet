@@ -30,7 +30,7 @@ def _app_signer(args: argparse.Namespace) -> Generator[TKeySign, None, None]:
         exit(f"Error: {e}")
 
 
-def cmd_pubkey(args: argparse.Namespace) -> int:
+def cmd_pubkey(args: argparse.Namespace) -> None:
     with _app_signer(args) as signer:
         pubkey = signer.get_pubkey()
     if args.output:
@@ -38,10 +38,9 @@ def cmd_pubkey(args: argparse.Namespace) -> int:
         print(f"Public key written to {args.output}")
     else:
         print(pubkey.hex())
-    return 0
 
 
-def cmd_sign(args: argparse.Namespace) -> int:
+def cmd_sign(args: argparse.Namespace) -> None:
     file_path = Path(args.file)
     if not file_path.exists():
         exit(f"Error: File {args.file} does not exist")
@@ -54,10 +53,9 @@ def cmd_sign(args: argparse.Namespace) -> int:
     sig_path = file_path.with_suffix(file_path.suffix + ".signature")
     sig_path.write_bytes(signature)
     print(f"Signature written to {sig_path}")
-    return 0
 
 
-def cmd_verify(args: argparse.Namespace) -> int:
+def cmd_verify(args: argparse.Namespace) -> None:
     file_path = Path(args.file)
     if not file_path.exists():
         exit(f"Error: File {args.file} does not exist")
@@ -93,7 +91,6 @@ def cmd_verify(args: argparse.Namespace) -> int:
         exit("Verification failed: Invalid signature")
 
     print("Verification successful!")
-    return 0
 
 
 def main() -> None:
