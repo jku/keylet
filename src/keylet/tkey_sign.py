@@ -10,7 +10,7 @@ import importlib.resources
 import logging
 from dataclasses import dataclass
 
-from keylet.tkey import Cmd, LenIdx, Rsp, TKey, TKeyAppError, TKeyError
+from keylet.tkey import Cmd, LenIdx, Rsp, TKey, TKeyError, TKeyUnexpectedAppError
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +199,7 @@ class TKeySign(TKey):
 
         Raises:
             TKeyNotFoundError: If the TKey device cannot be found.
-            TKeyAppError: If loading the application fails or the device is
+            TKeyUnexpectedAppError: If loading the application fails or the device is
                 running a mismatched application.
             TKeyError: For other connection or initialization failures.
         """
@@ -220,7 +220,7 @@ class TKeySign(TKey):
                 if name == app.name and ver == app.version:
                     return  # Signer application is already loaded
 
-                raise TKeyAppError(
+                raise TKeyUnexpectedAppError(
                     f"TKey is running an unknown application {name, ver}, "
                     f"expected {app.name, app.version}"
                 )

@@ -132,6 +132,10 @@ class TKeyNOKError(TKeyProtocolError):
     """Raised when the TKey device returns a NOK (Not OK) status."""
 
 
+class TKeyUnexpectedAppError(TKeyAppError):
+    """Raised when TKey is already running a different application."""
+
+
 class TKey:
     """Base TKey Client
 
