@@ -32,14 +32,10 @@ jobs:
 
       - name: Build docs for all releases and main
         run: |
-          mkdir -p docs-build
           (echo dev && git tag -l "v*") | while read -r tag; do
             echo "::group::Processing release: $tag"
-            # Add your custom logic here, for example:
             [[ "$tag" == "dev" ]] && git checkout main || git checkout $tag
-            uv sync --all-groups
             uv run zensical build --strict
-
             mkdir -p "docs-build/$tag"
             mv site/* "docs-build/$tag"
             echo "::endgroup::"
