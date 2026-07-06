@@ -75,6 +75,9 @@ See the [API Reference](https://jku.github.io/keylet/api/) for more details.
 [uv](https://docs.astral.sh/uv/) is a required development tool.
 
 ```bash
+# Run keylet CLI from source
+uv run keylet sign README.md
+
 # run linters and type checker
 make lint
 
