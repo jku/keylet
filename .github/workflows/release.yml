@@ -23,6 +23,15 @@ jobs:
           enable-cache: false
           version-file: uv.lock
 
+      - name: Verify release version
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          PROJECT_VERSION=$(grep -m 1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          if [ "$TAG_VERSION" != "$PROJECT_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match pyproject.toml version ($PROJECT_VERSION)"
+            exit 1
+          fi
+
       - name: Build package
         run: uv build
 
