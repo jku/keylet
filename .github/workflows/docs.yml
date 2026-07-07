@@ -35,7 +35,7 @@ jobs:
           (echo dev && git tag -l "v*") | while read -r tag; do
             echo "::group::Processing release: $tag"
             [[ "$tag" == "dev" ]] && git checkout main || git checkout $tag
-            uv run zensical build --strict
+            uv run --frozen zensical build --strict
             mkdir -p "docs-build/$tag"
             mv site/* "docs-build/$tag"
             echo "::endgroup::"
