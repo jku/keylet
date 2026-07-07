@@ -131,6 +131,9 @@ class SignApp:
         TKey key derivation depends on the application binary, so users who want a
         specific key must provide the binary digest.
 
+        Warning:
+            When Ed25519 is used, there is a 4096K size limit to signing payloads.
+
         Args:
             version: The version of the signer application to load.
             digest: A BLAKE2s-256 hex digest (or prefix) of the target binary.
@@ -265,7 +268,9 @@ class TKeySign(TKey):
             the physical TKey device when it flashes.
 
         Args:
-            message: The raw bytes of the message/payload to sign.
+            message: The raw bytes of the message/payload to sign. When Ed25519 keys
+                are used, there is a max message size of 4096K. This limitation does
+                not apply to ML-DSA as FIPS 204 external mu is used.
             pub_key: The public key bytes (only needed for ML-DSA). If not provided,
                 key is retrieved from device.
 

@@ -48,3 +48,6 @@ nav:
 extra:
   version:
     provider: mike
+
+watch:
+  - src/keylet
