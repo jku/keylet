@@ -15,7 +15,7 @@ from keylet.tkey import Cmd, LenIdx, Rsp, TKey, TKeyError, TKeyUnexpectedAppErro
 logger = logging.getLogger(__name__)
 
 MU_SIZE = (64).to_bytes(4, byteorder="little")
-
+MAX_PAYLOAD_SIZE = 4096
 
 # Static registry of signer binaries (filename, version)
 # First binary in each list is the default binary.
@@ -132,7 +132,7 @@ class SignApp:
         specific key must provide the binary digest.
 
         Warning:
-            When Ed25519 is used, there is a 4096K size limit to signing payloads.
+            When Ed25519 is used, there is a 4096B size limit to signing payloads.
 
         Args:
             version: The version of the signer application to load.
@@ -269,7 +269,7 @@ class TKeySign(TKey):
 
         Args:
             message: The raw bytes of the message/payload to sign. When Ed25519 keys
-                are used, there is a max message size of 4096K. This limitation does
+                are used, there is a max message size of 4096B. This limitation does
                 not apply to ML-DSA as FIPS 204 external mu is used.
             pub_key: The public key bytes (only needed for ML-DSA). If not provided,
                 key is retrieved from device.
@@ -293,8 +293,8 @@ class TKeySign(TKey):
             payload = message
 
         # Set size
-        if len(payload) > 4096:
-            raise ValueError(f"Payload too large {len(payload)} > 4096]")
+        if len(payload) > MAX_PAYLOAD_SIZE:
+            raise ValueError(f"Payload too large {len(payload)} > {MAX_PAYLOAD_SIZE}]")
         self.send(SignCmd.SET_SIZE, len(payload).to_bytes(4, byteorder="little"))
 
         # Load data in chunks
