@@ -150,10 +150,7 @@ class TKey:
     * [Framing protocol](https://dev.tillitis.se/protocol/#framing-protocol)
     """
 
-    def __init__(
-        self,
-        device: str | None,
-    ) -> None:
+    def __init__(self, device: str | None) -> None:
         """Initialize serial connection to TKey device.
 
         Args:
