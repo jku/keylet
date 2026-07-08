@@ -26,7 +26,7 @@ jobs:
       - name: Verify release version
         run: |
           TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          PROJECT_VERSION=$(grep -m 1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          PROJECT_VERSION=$(uv version --short --frozen)
           if [ "$TAG_VERSION" != "$PROJECT_VERSION" ]; then
             echo "Error: Tag version ($TAG_VERSION) does not match pyproject.toml version ($PROJECT_VERSION)"
             exit 1
