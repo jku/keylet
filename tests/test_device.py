@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA44PublicKey
 
+import keylet.tkey_sign
 from keylet.tkey import (
     APP_MAXSIZE,
     TKey,
@@ -53,6 +54,14 @@ def _test_signer() -> TKeySign:
             )
         except Exception:
             pytest.fail(f"Failed to initialize TKey with test device application: {e})")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def mock_mldsa_app_name() -> Generator[None, None, None]:
+    old_name = keylet.tkey_sign._MLDSA_APP_NAME
+    keylet.tkey_sign._MLDSA_APP_NAME = ("tk1", "pqnt")
+    yield
+    keylet.tkey_sign._MLDSA_APP_NAME = old_name
 
 
 @pytest.fixture(scope="module")

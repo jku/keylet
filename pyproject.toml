@@ -61,6 +61,7 @@ ignore = [
 "tests/**" = [
     "S101",   # assert is ok in tests
     "S105",   # hardcoded password is ok in tests
+    "SLF001", # Private member access is ok in tests
     "ARG002", # Unused method argument (common with mocks)
 ]
 

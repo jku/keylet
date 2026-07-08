@@ -22,10 +22,11 @@ MAX_PAYLOAD_SIZE = 4096
 _EMBEDDED_MLDSA_BINS: list[tuple[str, int]] = [
     ("pqsigner_v3.bin", 3),
 ]
-
 _EMBEDDED_ED25519_BINS: list[tuple[str, int]] = [
     ("ed25519signer_v3.bin", 3),
 ]
+_MLDSA_APP_NAME = ("tk1", "pqsn")
+_ED25519_APP_NAME = ("tk1", "sign")
 
 
 @dataclass
@@ -116,7 +117,7 @@ class SignApp:
         """
 
         binary, version = cls._find_binary(version, digest, _EMBEDDED_MLDSA_BINS)
-        return cls(binary, version, ("tk1", "pqsn"), 2420, 1312)
+        return cls(binary, version, _MLDSA_APP_NAME, 2420, 1312)
 
     @classmethod
     def load_ed25519(
@@ -146,7 +147,7 @@ class SignApp:
                 is ambiguous (matches multiple binaries).
         """
         binary, version = cls._find_binary(version, digest, _EMBEDDED_ED25519_BINS)
-        return cls(binary, version, ("tk1", "sign"), 64, 32)
+        return cls(binary, version, _ED25519_APP_NAME, 64, 32)
 
 
 class SignRsp:
@@ -282,8 +283,7 @@ class TKeySign(TKey):
             TKeyIOError: If writing or reading from the serial port fails.
             TKeyProtocolError: If there is a framing or protocol mismatch.
         """
-        # pqsn = ML-DSA signer, pqnt = no-touch ML-DSA test signer
-        if self.name in [("tk1", "pqsn"), ("tk1", "pqnt")]:
+        if self.name == _MLDSA_APP_NAME:
             # Compute FIPS 204 external mu
             if pub_key is None:
                 pub_key = self.get_pubkey()
