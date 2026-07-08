@@ -68,7 +68,7 @@ with TKeySign(app=app, secret="hunter2") as signer:
     signature = signer.sign(b"my payload")
 ```
 
-See the [API Reference](https://jku.github.io/keylet/api/) for more details.
+See API Reference in [documentation](https://jku.github.io/keylet/) for more details.
 
 ## Development
 
