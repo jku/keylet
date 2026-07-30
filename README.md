@@ -68,7 +68,7 @@ with TKeySign(app=app, secret="hunter2") as signer:
     signature = signer.sign(b"my payload")
 ```
 
-See API Reference in [documentation](https://jku.github.io/keylet/) for more details.
+See API Reference in [documentation](https://jku.github.io/keylet/) for more details.   
 
 ## Development
 
@@ -90,3 +90,9 @@ make test
 # run tests, including on-device tests
 make test-device
 ```
+
+## Releasing
+
+* If a major or minor version bump is needed run `uv version --bump=[major|minor]`
+* run `./release.sh` to create version bump commit, release tag and dev version bump commit
+* Push the commits and tag to trigger release workflow: `git push --tags origin main`
