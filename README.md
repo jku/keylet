@@ -94,5 +94,5 @@ make test-device
 ### Releasing
 
 * If a major or minor version bump is needed run `uv version --bump=[major|minor]`
-* run `./release.sh` to create version bump commit, release tag and dev version bump commit
+* run `make release` to create version bump commit, release tag and dev version bump commit
 * Push the commits and tag to trigger release workflow: `git push --tags origin main`
