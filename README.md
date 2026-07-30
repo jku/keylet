@@ -91,7 +91,7 @@ make test
 make test-device
 ```
 
-## Releasing
+### Releasing
 
 * If a major or minor version bump is needed run `uv version --bump=[major|minor]`
 * run `./release.sh` to create version bump commit, release tag and dev version bump commit
