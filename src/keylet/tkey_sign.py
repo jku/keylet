@@ -14,7 +14,6 @@ from keylet.tkey import Cmd, LenIdx, Rsp, TKey, TKeyError, TKeyUnexpectedAppErro
 
 logger = logging.getLogger(__name__)
 
-MU_SIZE = (64).to_bytes(4, byteorder="little")
 MAX_PAYLOAD_SIZE = 4096
 
 # Static registry of signer binaries (filename, version)
