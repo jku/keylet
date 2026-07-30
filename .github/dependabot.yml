@@ -8,7 +8,7 @@ updates:
     cooldown:
       default-days: 7
     groups:
-      trivial:
+      minor-actions-updates:
         patterns:
           - "*"
         update-types:
@@ -24,7 +24,7 @@ updates:
     cooldown:
       default-days: 7
     groups:
-      trivial:
+      minor-uv-updates:
         patterns:
           - "*"
         update-types:
