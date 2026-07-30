@@ -36,7 +36,7 @@ $ keylet verify --pubkey pub.key README.md
 # When using keylet long-term, remember to specify device app digest (keylet default
 # app version may change, but you will need a specific application to keep using the
 # same key)
-$ keylet --passphrase hunter2 --digest 186bcf6 sign README.md
+$ keylet --passphrase hunter2 --digest 2cd8741 sign README.md
 
 ```
 

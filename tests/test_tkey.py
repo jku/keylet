@@ -380,9 +380,9 @@ def test_sign_app_load_by_digest(
     bin1 = b"binary_one_data"
     bin2 = b"binary_two_data"
 
-    digest0 = hashlib.blake2s(bin0, digest_size=32).hexdigest()
-    digest1 = hashlib.blake2s(bin1, digest_size=32).hexdigest()
-    digest2 = hashlib.blake2s(bin2, digest_size=32).hexdigest()
+    digest0 = hashlib.sha512(bin0).hexdigest()
+    digest1 = hashlib.sha512(bin1).hexdigest()
+    digest2 = hashlib.sha512(bin2).hexdigest()
 
     # Configure the mock registry
     mock_embedded.clear()

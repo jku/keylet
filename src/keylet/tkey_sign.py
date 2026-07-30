@@ -49,8 +49,8 @@ class SignApp:
 
     @property
     def digest(self) -> str:
-        """Return the BLAKE2s-256 hex digest of the application binary."""
-        return hashlib.blake2s(self.binary, digest_size=32).hexdigest()
+        """Return the SHA-512 hex digest of the application binary."""
+        return hashlib.sha512(self.binary).hexdigest()
 
     @classmethod
     def _find_binary(
@@ -66,7 +66,7 @@ class SignApp:
                 continue
 
             binary = resources_dir.joinpath(filename).read_bytes()
-            file_digest = hashlib.blake2s(binary, digest_size=32).hexdigest()
+            file_digest = hashlib.sha512(binary).hexdigest()
 
             # Filter by digest if requested
             if digest is not None and not file_digest.startswith(digest.lower()):
@@ -106,7 +106,7 @@ class SignApp:
 
         Args:
             version: The version of the signer application to load.
-            digest: A BLAKE2s-256 hex digest (or prefix) of the target binary.
+            digest: A SHA-512 hex digest (or prefix) of the target binary.
 
         Returns:
             An instance of SignApp configured with the loaded binary.
@@ -137,7 +137,7 @@ class SignApp:
 
         Args:
             version: The version of the signer application to load.
-            digest: A BLAKE2s-256 hex digest (or prefix) of the target binary.
+            digest: A SHA-512 hex digest (or prefix) of the target binary.
 
         Returns:
             An instance of SignApp configured with the loaded binary.
