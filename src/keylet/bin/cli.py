@@ -2,6 +2,7 @@
 # Copyright (c) 2026 keylet authors
 
 import argparse
+import getpass
 import sys
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -18,11 +19,12 @@ from keylet.tkey_sign import SignApp, TKeySign
 @contextmanager
 def _app_signer(args: argparse.Namespace) -> Generator[TKeySign, None, None]:
     try:
+        secret = getpass.getpass("Enter passphrase (press Enter for none): ")
         if args.type == "ed25519":
             app = SignApp.load_ed25519(digest=args.digest)
         else:
             app = SignApp.load_mldsa(digest=args.digest)
-        with TKeySign(app, secret=args.passphrase) as signer:
+        with TKeySign(app, secret=secret or None) as signer:
             print(f"Using {args.type} device app with digest {app.digest[:7]}")
             yield signer
     except TKeyNotFoundError as e:
@@ -76,8 +78,8 @@ def cmd_verify(args: argparse.Namespace) -> None:
     if args.pubkey:
         pubkey_bytes = Path(args.pubkey).read_bytes()
     else:
+        print("Retrieving public key from device...")
         with _app_signer(args) as signer:
-            print("Retrieving public key from device...")
             pubkey_bytes = signer.get_pubkey()
 
     try:
@@ -101,7 +103,6 @@ def main() -> None:
     parser.add_argument(
         "--digest", help="Optional digest of the device application to use"
     )
-    parser.add_argument("--passphrase")
     parser.add_argument(
         "-t",
         "--type",

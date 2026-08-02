@@ -28,15 +28,15 @@ The package installs a `keylet` command-line tool for signing and verification. 
 $ keylet sign README.md
 $ keylet verify README.md
 
-# Get public key, sign with a passphrase, and verify using the saved public key
-$ keylet --passphrase hunter2 pubkey --output pub.key
-$ keylet --passphrase hunter2 sign README.md
+# Get public key, sign, and verify using the saved public key
+$ keylet pubkey --output pub.key
+$ keylet sign README.md
 $ keylet verify --pubkey pub.key README.md
 
 # When using keylet long-term, remember to specify device app digest (keylet default
 # app version may change, but you will need a specific application to keep using the
 # same key)
-$ keylet --passphrase hunter2 --digest 2cd8741 sign README.md
+$ keylet --digest 2cd8741 sign README.md
 
 ```
 
