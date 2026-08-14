@@ -47,11 +47,20 @@ def cmd_sign(args: argparse.Namespace) -> None:
     file_path = Path(args.file)
     if not file_path.exists():
         sys.exit(f"Error: File {args.file} does not exist")
-
     data = file_path.read_bytes()
+
+    pubkey = None
+    if args.pubkey is not None:
+        key_path = Path(args.pubkey)
+        if not key_path.exists():
+            sys.exit(f"Error: Public key {args.pubkey} does not exist")
+        pubkey = key_path.read_bytes()
+        # Note that we do not compare the given pubkey to the pubkey from the device
+        # A real application would want to do that to check for passphrase typos etc.
+
     with _app_signer(args) as signer:
         print("Please touch the TKey device when it flashes to sign...")
-        signature = signer.sign(data)
+        signature = signer.sign(data, pubkey)
 
     sig_path = file_path.with_suffix(file_path.suffix + ".signature")
     sig_path.write_bytes(signature)
@@ -120,6 +129,10 @@ def main() -> None:
     # sign command
     parser_sign = subparsers.add_parser("sign", help="Sign a file")
     parser_sign.add_argument("file", help="File to sign")
+    parser_sign.add_argument(
+        "--pubkey",
+        help="Optional public key file (retrieved from device if not specified)",
+    )
 
     # verify command
     parser_verify = subparsers.add_parser("verify", help="Verify a signature")
