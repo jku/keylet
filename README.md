@@ -49,9 +49,9 @@ from keylet import TKeySign, SignApp
 app = SignApp.load_mldsa()
 digest = app.digest
 
-# Initialize the signer with a passphrase
+# Initialize the signer with a passphrase, sign a payload
 with TKeySign(app=app, secret="hunter2") as signer:
-    # Sign a payload
+    pubkey = signer.get_pubkey()
     signature = signer.sign(b"my payload")
 ```
 
@@ -62,9 +62,10 @@ is always used for a specific key:
 # Load application with a digest stored earlier
 app = SignApp.load_mldsa(digest=digest)
 
-# Initialize the signer with a passphrase
+# Initialize the signer with a passphrase, sign a payload
 with TKeySign(app=app, secret="hunter2") as signer:
-    # Sign a payload
+    if signer.get_pubkey() != pubkey:
+        exit("Unexpected signing key: maybe incorrect password?")
     signature = signer.sign(b"my payload")
 ```
 
