@@ -2,7 +2,9 @@
 # Copyright (c) 2026 keylet authors
 
 import hashlib
+import io
 from collections.abc import Generator
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,7 +22,7 @@ from keylet.tkey import (
     TKeyNOKError,
     TKeyNotInFirmwareModeError,
 )
-from keylet.tkey_sign import SignApp, SignRsp, TKeySign
+from keylet.tkey_sign import SignableMessage, SignApp, SignRsp, TKeySign
 
 
 @pytest.fixture(autouse=True)
@@ -511,3 +513,135 @@ def test_require_firmware_mode_succeeds_when_in_fw_mode(
     app = SignApp(app_binary, 3, ("tk1", "sign"), 64, 32)
     signer = TKeySign(app=app, device=None, require_firmware_mode=True)
     assert signer.name == ("tk1", "sign")
+
+
+@patch.object(TKeySign, "_get_connection")
+def test_mldsa_sign_streaming_equivalence(
+    mock_get_connection: MagicMock,
+) -> None:
+    """Verify that bytes, BinaryReader (io.BytesIO), and Iterable[bytes] produce
+    the exact same signing commands on the wire."""
+    app = SignApp(b"mock_mldsa_app", 3, ("tk1", "pqsn"), 64, 128)
+    pubkey = b"P" * 128
+    sig_data = b"S" * 64
+
+    # Sign responses: SET_SIZE (fid=1), LOAD_DATA (fid=2), GET_SIG (fid=3)
+    def make_sign_reads() -> list[bytes]:
+        set_size_resp = make_response_frame(
+            fid=1, eid=3, status=0, rsp=SignRsp.SET_SIZE, data=b"\x00"
+        )
+        load_data_resp = make_response_frame(
+            fid=2, eid=3, status=0, rsp=SignRsp.LOAD_DATA, data=b"\x00"
+        )
+        get_sig_resp = make_response_frame(
+            fid=3, eid=3, status=0, rsp=SignRsp.GET_SIG, data=b"\x00" + sig_data
+        )
+        return [set_size_resp, load_data_resp, get_sig_resp]
+
+    with patch.object(TKeySign, "load_app", return_value=True):
+        # 1. Sign with raw bytes
+        mock_conn = MockStreamConnection(reads=make_sign_reads())
+        mock_get_connection.return_value = mock_conn
+        signer = TKeySign(app=app, device=None, require_firmware_mode=False)
+        sig1 = signer.sign(b"streaming test payload", pub_key=pubkey)
+        written_bytes = bytes(mock_conn.written)
+
+        # 2. Sign with io.BytesIO
+        mock_conn = MockStreamConnection(reads=make_sign_reads())
+        mock_get_connection.return_value = mock_conn
+        signer = TKeySign(app=app, device=None, require_firmware_mode=False)
+        sig2 = signer.sign(io.BytesIO(b"streaming test payload"), pub_key=pubkey)
+        written_stream = bytes(mock_conn.written)
+
+        # 3. Sign with Iterable[bytes]
+        mock_conn = MockStreamConnection(reads=make_sign_reads())
+        mock_get_connection.return_value = mock_conn
+        signer = TKeySign(app=app, device=None, require_firmware_mode=False)
+        sig3 = signer.sign(iter([b"streaming ", b"test ", b"payload"]), pub_key=pubkey)
+        written_iterable = bytes(mock_conn.written)
+
+    assert sig1 == sig_data
+    assert sig2 == sig_data
+    assert sig3 == sig_data
+    assert written_bytes == written_stream
+    assert written_bytes == written_iterable
+
+
+@patch.object(TKeySign, "_get_connection")
+def test_ed25519_sign_streaming_bounded(
+    mock_get_connection: MagicMock,
+) -> None:
+    """Verify that Ed25519 accepts streaming input within MAX_PAYLOAD_SIZE."""
+    private_key = Ed25519PrivateKey.generate()
+    pubkey = private_key.public_key().public_bytes_raw()
+    message = b"streaming ed25519 message"
+    sig_data = private_key.sign(message)
+
+    set_size_resp = make_response_frame(
+        fid=1, eid=3, status=0, rsp=SignRsp.SET_SIZE, data=b"\x00"
+    )
+    load_data_resp = make_response_frame(
+        fid=2, eid=3, status=0, rsp=SignRsp.LOAD_DATA, data=b"\x00"
+    )
+    get_sig_resp = make_response_frame(
+        fid=3, eid=3, status=0, rsp=SignRsp.GET_SIG, data=b"\x00" + sig_data
+    )
+
+    mock_conn = MockStreamConnection(
+        reads=[set_size_resp, load_data_resp, get_sig_resp]
+    )
+    mock_get_connection.return_value = mock_conn
+
+    app = SignApp(b"mock_ed25519_app", 3, ("tk1", "sign"), 64, 32)
+    with patch.object(TKeySign, "load_app", return_value=True):
+        signer = TKeySign(app=app, device=None, require_firmware_mode=False)
+        sig = signer.sign(io.BytesIO(message), pub_key=pubkey)
+
+    assert sig == sig_data
+
+
+@patch.object(TKeySign, "_get_connection")
+def test_ed25519_sign_streaming_oversized_fails_fast(
+    mock_get_connection: MagicMock,
+) -> None:
+    """Verify that Ed25519 reading an oversized stream fails fast without
+    consuming excessive bytes."""
+    app = SignApp(b"mock_ed25519_app", 3, ("tk1", "sign"), 64, 32)
+    mock_conn = MockStreamConnection(reads=[])
+    mock_get_connection.return_value = mock_conn
+
+    with patch.object(TKeySign, "load_app", return_value=True):
+        signer = TKeySign(app=app, device=None, require_firmware_mode=False)
+
+    class TrackingReader:
+        def __init__(self) -> None:
+            self.bytes_read = 0
+
+        def read(self, size: int = -1) -> bytes:
+            count = 5000 if size < 0 else size
+            self.bytes_read += count
+            return b"A" * count
+
+    reader = TrackingReader()
+    with pytest.raises(ValueError, match="Payload size exceeds"):
+        signer.sign(reader, pub_key=b"k" * 32)
+
+
+@patch.object(TKeySign, "_get_connection")
+def test_sign_streaming_invalid_types(
+    mock_get_connection: MagicMock,
+) -> None:
+    mock_conn = MockStreamConnection(reads=[])
+    mock_get_connection.return_value = mock_conn
+    app = SignApp(b"mock_app", 3, ("tk1", "pqsn"), 64, 128)
+    with patch.object(TKeySign, "load_app", return_value=True):
+        signer = TKeySign(app=app, device=None, require_firmware_mode=False)
+    dummy_pubkey = b"P" * 128
+
+    # Non-bytes chunk in iterable
+    with pytest.raises(TypeError):
+        signer.sign(cast("SignableMessage", [123]), pub_key=dummy_pubkey)
+
+    # Unsupported message type
+    with pytest.raises(TypeError):
+        signer.sign(cast("SignableMessage", 12345), pub_key=dummy_pubkey)

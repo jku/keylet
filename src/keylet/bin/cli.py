@@ -47,7 +47,6 @@ def cmd_sign(args: argparse.Namespace) -> None:
     file_path = Path(args.file)
     if not file_path.exists():
         sys.exit(f"Error: File {args.file} does not exist")
-    data = file_path.read_bytes()
 
     pubkey = None
     if args.pubkey is not None:
@@ -60,7 +59,8 @@ def cmd_sign(args: argparse.Namespace) -> None:
 
     with _app_signer(args) as signer:
         print("Please touch the TKey device when it flashes to sign...")
-        signature = signer.sign(data, pubkey)
+        with file_path.open("rb") as f:
+            signature = signer.sign(f, pubkey)
 
     sig_path = file_path.with_suffix(file_path.suffix + ".signature")
     sig_path.write_bytes(signature)

@@ -8,7 +8,9 @@ from __future__ import annotations
 import hashlib
 import importlib.resources
 import logging
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
+from typing import Protocol, TypeAlias, runtime_checkable
 
 from keylet.tkey import (
     Cmd,
@@ -23,6 +25,39 @@ from keylet.tkey import (
 logger = logging.getLogger(__name__)
 
 MAX_PAYLOAD_SIZE = 4096
+_STREAM_CHUNK_SIZE = 64 * 1024  # 64 KiB buffer for streaming
+
+
+@runtime_checkable
+class BinaryReader(Protocol):
+    """Protocol for binary streams supporting chunked reads."""
+
+    def read(self, size: int = -1, /) -> bytes: ...
+
+
+SignableMessage: TypeAlias = bytes | BinaryReader | Iterable[bytes]
+
+
+def _iter_chunks(message: SignableMessage) -> Iterator[bytes]:
+    """Yield chunks of bytes from bytes, a binary reader, or an iterable of bytes."""
+    if isinstance(message, bytes):
+        yield message
+    elif isinstance(message, BinaryReader):
+        while chunk := message.read(_STREAM_CHUNK_SIZE):
+            yield chunk
+    else:  # iterable
+        yield from message
+
+
+def _read_bounded(message: SignableMessage, max_size: int) -> bytes:
+    """Read stream into memory up to max_size, failing fast on overflow."""
+    buf = bytearray()
+    for chunk in _iter_chunks(message):
+        buf.extend(chunk)
+        if len(buf) > max_size:
+            raise ValueError(f"Payload size exceeds maximum {max_size} bytes")
+    return bytes(buf)
+
 
 # Static registry of signer binaries (filename, version)
 # First binary in each list is the default binary.
@@ -275,22 +310,25 @@ class TKeySign(TKey):
 
         return bytes(pubkey)
 
-    def sign(self, message: bytes, pub_key: bytes | None = None) -> bytes:
+    def sign(self, message: SignableMessage, pub_key: bytes | None = None) -> bytes:
         """Sign a payload.
 
         Sends payload to device and retrieves the signature.
 
         For ML-DSA, the FIPS 204 external mu is computed using the message
         and public key: the mu is sent to device instead of payload.
+        Streaming messages of arbitrary size are supported for ML-DSA.
+        For Ed25519, the message (or stream) must not exceed 4096 bytes.
 
         Note:
             This method blocks and waits (up to 60 seconds) for the user to touch
             the physical TKey device when it flashes.
 
         Args:
-            message: The raw bytes of the message/payload to sign. When Ed25519 keys
-                are used, there is a max message size of 4096B. This limitation does
-                not apply to ML-DSA as FIPS 204 external mu is used.
+            message: The raw bytes, binary reader (file-like object), or chunk iterable
+                to sign. For Ed25519, the total message size cannot exceed 4096B.
+                This limitation does not apply to ML-DSA as FIPS 204 external mu
+                is used.
             pub_key: The public key bytes (only needed for ML-DSA). If not provided,
                 key is retrieved from device.
 
@@ -307,13 +345,14 @@ class TKeySign(TKey):
             if pub_key is None:
                 pub_key = self.get_pubkey()
             tr = hashlib.shake_256(pub_key).digest(64)
-            payload = hashlib.shake_256(tr + b"\x00\x00" + message).digest(64)
+            shake = hashlib.shake_256(tr + b"\x00\x00")
+            for chunk in _iter_chunks(message):
+                shake.update(chunk)
+            payload = shake.digest(64)
         else:
-            payload = message
+            payload = _read_bounded(message, MAX_PAYLOAD_SIZE)
 
         # Set size
-        if len(payload) > MAX_PAYLOAD_SIZE:
-            raise ValueError(f"Payload too large {len(payload)} > {MAX_PAYLOAD_SIZE}]")
         self.send(SignCmd.SET_SIZE, len(payload).to_bytes(4, byteorder="little"))
 
         # Load data in chunks

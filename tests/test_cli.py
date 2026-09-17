@@ -2,9 +2,10 @@
 # Copyright (c) 2026 keylet authors
 
 import argparse
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from keylet.bin.cli import _app_signer
+from keylet.bin.cli import _app_signer, cmd_sign
 
 
 def test_app_signer_with_empty_passphrase() -> None:
@@ -51,3 +52,30 @@ def test_app_signer_with_passphrase() -> None:
             "Enter passphrase (press Enter for none): "
         )
         mock_tkeysign.assert_called_once_with(mock_app, secret="mysecret")
+
+
+def test_cmd_sign_streams_file(tmp_path: Path) -> None:
+    test_file = tmp_path / "test.txt"
+    test_file.write_bytes(b"hello streaming")
+
+    args = argparse.Namespace(
+        file=str(test_file),
+        pubkey=None,
+        type="ml-dsa",
+        digest=None,
+    )
+
+    mock_signer = MagicMock()
+    mock_signer.sign.return_value = b"signed_signature_bytes"
+
+    with patch("keylet.bin.cli._app_signer") as mock_app_signer_ctx:
+        mock_app_signer_ctx.return_value.__enter__.return_value = mock_signer
+        cmd_sign(args)
+
+    mock_signer.sign.assert_called_once()
+    called_file_arg = mock_signer.sign.call_args[0][0]
+    assert hasattr(called_file_arg, "read")
+
+    sig_file = tmp_path / "test.txt.signature"
+    assert sig_file.exists()
+    assert sig_file.read_bytes() == b"signed_signature_bytes"
