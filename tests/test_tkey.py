@@ -18,6 +18,7 @@ from keylet.tkey import (
     Rsp,
     TKey,
     TKeyNOKError,
+    TKeyNotInFirmwareModeError,
 )
 from keylet.tkey_sign import SignApp, SignRsp, TKeySign
 
@@ -49,6 +50,7 @@ class MockStreamConnection:
         self.reads = reads
         self.written = bytearray()
         self.timeout = 5.0
+        self.closed = False
 
     def write(self, data: bytes) -> int:
         self.written.extend(data)
@@ -66,7 +68,7 @@ class MockStreamConnection:
         return chunk
 
     def close(self) -> None:
-        pass
+        self.closed = True
 
     @property
     def in_waiting(self) -> int:
@@ -439,3 +441,73 @@ def test_sign_app_load_by_digest(
     # Test version mismatch
     with pytest.raises(ValueError, match="No device binary found matching"):
         SignApp.load_mldsa(version=3, digest=digest2)
+
+
+@patch.object(TKeySign, "_get_connection")
+def test_require_firmware_mode_fails_when_not_in_fw_mode(
+    mock_get_connection: MagicMock,
+) -> None:
+    # NOK response to FwCmd.NAME_VERSION (status=1)
+    fw_nok_response = make_response_frame(
+        fid=1, eid=2, status=1, rsp=FwRsp.NAME_VERSION, data=b""
+    )
+    mock_conn = MockStreamConnection(reads=[fw_nok_response])
+    mock_get_connection.return_value = mock_conn
+
+    app = SignApp(b"mock_app_data", 3, ("tk1", "sign"), 64, 32)
+
+    with pytest.raises(TKeyNotInFirmwareModeError, match="not in firmware mode"):
+        TKeySign(app=app, device=None, require_firmware_mode=True)
+
+    assert mock_conn.closed
+
+
+@patch.object(TKeySign, "_get_connection")
+def test_require_firmware_mode_false_allows_running_app(
+    mock_get_connection: MagicMock,
+) -> None:
+    # 1. NOK response to FwCmd.NAME_VERSION (status=1)
+    fw_nok_response = make_response_frame(
+        fid=1, eid=2, status=1, rsp=FwRsp.NAME_VERSION, data=b""
+    )
+    # 2. GET_NAMEVERSION response matching app
+    get_nameversion_payload = b"tk1 " + b"sign" + (3).to_bytes(4, byteorder="little")
+    get_nameversion_response = make_response_frame(
+        fid=2,
+        eid=3,
+        status=0,
+        rsp=SignRsp.GET_NAMEVERSION,
+        data=get_nameversion_payload,
+    )
+    mock_conn = MockStreamConnection(reads=[fw_nok_response, get_nameversion_response])
+    mock_get_connection.return_value = mock_conn
+
+    app = SignApp(b"mock_app_data", 3, ("tk1", "sign"), 64, 32)
+    signer = TKeySign(app=app, device=None, require_firmware_mode=False)
+    assert signer.name == ("tk1", "sign")
+
+
+@patch.object(TKeySign, "_get_connection")
+def test_require_firmware_mode_succeeds_when_in_fw_mode(
+    mock_get_connection: MagicMock,
+) -> None:
+    app_binary = b"mock_app_data"
+    app_digest = hashlib.blake2s(app_binary, digest_size=32).digest()
+
+    fw_response = make_response_frame(
+        fid=1, eid=2, status=0, rsp=FwRsp.NAME_VERSION, data=b"tk1 " + b"mkdf"
+    )
+    load_app_response = make_response_frame(
+        fid=2, eid=2, status=0, rsp=FwRsp.LOAD_APP, data=b"\x00"
+    )
+    load_app_data_response = make_response_frame(
+        fid=3, eid=2, status=0, rsp=FwRsp.LOAD_APP_DATA_READY, data=b"\x00" + app_digest
+    )
+    mock_conn = MockStreamConnection(
+        reads=[fw_response, load_app_response, load_app_data_response]
+    )
+    mock_get_connection.return_value = mock_conn
+
+    app = SignApp(app_binary, 3, ("tk1", "sign"), 64, 32)
+    signer = TKeySign(app=app, device=None, require_firmware_mode=True)
+    assert signer.name == ("tk1", "sign")

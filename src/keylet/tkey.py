@@ -138,6 +138,10 @@ class TKeyUnexpectedAppError(TKeyAppError):
     """Raised when TKey is already running a different application."""
 
 
+class TKeyNotInFirmwareModeError(TKeyAppError):
+    """Raised when the TKey is not in firmware mode and firmware mode was required."""
+
+
 class TKey:
     """Base TKey Client
 

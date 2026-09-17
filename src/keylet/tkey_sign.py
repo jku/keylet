@@ -10,7 +10,15 @@ import importlib.resources
 import logging
 from dataclasses import dataclass
 
-from keylet.tkey import Cmd, LenIdx, Rsp, TKey, TKeyError, TKeyUnexpectedAppError
+from keylet.tkey import (
+    Cmd,
+    LenIdx,
+    Rsp,
+    TKey,
+    TKeyError,
+    TKeyNotInFirmwareModeError,
+    TKeyUnexpectedAppError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -185,12 +193,15 @@ class TKeySign(TKey):
         app: SignApp,
         device: str | None = None,
         secret: str | None = None,
+        *,
+        require_firmware_mode: bool = False,
     ) -> None:
         """Initialize the TKey signing client.
 
         If the TKey device is in firmware mode, this will automatically load the
-        application binary. If the device is already running an application, it
-        verifies that the running application matches the expected name and version.
+        application binary. If the device is already running an application (and
+        require_firmware_mode is not set), verifies that the running application
+        matches the expected name and version.
 
         Args:
             app: The SignApp configuration containing the binary and metadata.
@@ -198,9 +209,13 @@ class TKeySign(TKey):
                 the port is auto-detected.
             secret: Optional User Supplied Secret (passphrase) used as a seed
                 for key derivation.
+            require_firmware_mode: If True, fail if the device is not in firmware
+                mode instead of attempting to use an already running application.
 
         Raises:
             TKeyNotFoundError: If the TKey device cannot be found.
+            TKeyNotInFirmwareModeError: when require_firmware_mode is set and the
+                device is not in firmware mode.
             TKeyUnexpectedAppError: If loading the application fails or the device is
                 running a mismatched application.
             TKeyError: For other connection or initialization failures.
@@ -212,6 +227,11 @@ class TKeySign(TKey):
 
         try:
             if not self.load_app(app.binary, secret):
+                if require_firmware_mode:
+                    raise TKeyNotInFirmwareModeError(
+                        "TKey is not in firmware mode but require_firmware_mode was set"
+                    )
+
                 # TKey is not in firmware mode: Query application name and version
                 rx = self.send(SignCmd.GET_NAMEVERSION)
                 name = (
