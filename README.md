@@ -94,6 +94,8 @@ make test-device
 
 ### Releasing
 
+* Make sure all meaningful changes are listed in CHANGELOG.md
+  under "Unreleased"
 * If a major or minor version bump is needed run `uv version --bump=[major|minor]`
 * run `make release` to create version bump commit, release tag and dev version bump commit
-* Push the commits and tag to trigger release workflow: `git push --tags origin main`
+* Review locally, then push the commits and tag to trigger release workflow: `git push --tags origin main`

@@ -31,7 +31,7 @@ jobs:
             echo "Error: Tag version ($TAG_VERSION) does not match pyproject.toml version ($PROJECT_VERSION)"
             exit 1
           fi
-          if ! grep -q "^## $GITHUB_REF_NAME" CHANGELOG.md; then
+          if ! grep -E -q "^## $GITHUB_REF_NAME([[:space:]]|$)" CHANGELOG.md; then
             echo "Error: No changelog entry for $GITHUB_REF_NAME in CHANGELOG.md" >&2
             exit 1
           fi
