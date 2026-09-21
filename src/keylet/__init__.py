@@ -12,9 +12,8 @@ from keylet.tkey import (
     TKeyProtocolError,
     TKeyUnexpectedAppError,
 )
-from keylet.tkey_sign import BinaryReader, SignableMessage, SignApp, TKeySign
+from keylet.tkey_sign import SignApp, TKeySign
 
-__all__ = ["BinaryReader", "SignApp", "SignableMessage", "TKeySign"]
 __all__ = [
     "SignApp",
     "TKeyAppError",
