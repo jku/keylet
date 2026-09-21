@@ -31,6 +31,10 @@ jobs:
             echo "Error: Tag version ($TAG_VERSION) does not match pyproject.toml version ($PROJECT_VERSION)"
             exit 1
           fi
+          if ! grep -q "^## $GITHUB_REF_NAME" CHANGELOG.md; then
+            echo "Error: No changelog entry for $GITHUB_REF_NAME in CHANGELOG.md" >&2
+            exit 1
+          fi
 
       - name: Build package
         run: uv build
@@ -78,7 +82,15 @@ jobs:
           name: python-package-distributions
           path: dist/
 
+      - name: Extract changelog
+        run: |
+          awk -v ver="$GITHUB_REF_NAME" '
+            $0 ~ ("^## " ver "([[:space:]]|$)") { flag=1; next }
+            flag && /^## / { exit }
+            flag { print }
+          ' CHANGELOG.md > release-notes.md
+
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create --verify-tag --notes-from-tag --title "$GITHUB_REF_NAME" "$GITHUB_REF_NAME" dist/*
+        run: gh release create --verify-tag --notes-file release-notes.md --title "$GITHUB_REF_NAME" "$GITHUB_REF_NAME" dist/*

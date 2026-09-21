@@ -28,6 +28,7 @@ release:
 		VER=$$(uv version --dry-run --short --bump=stable); \
 		uv version --quiet --bump=stable ;; \
 	esac; \
+	grep -q "^## v$$VER" CHANGELOG.md || { echo "Error: No changelog entry for v$$VER in CHANGELOG.md" >&2; exit 1; }; \
 	if ! git diff --quiet; then \
 		git commit -a -m "Version bump for $$VER release"; \
 	fi; \
