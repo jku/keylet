@@ -32,7 +32,7 @@ jobs:
 
       - name: Build docs for all releases and main
         run: |
-          (echo dev && git tag -l "v*") | while read -r tag; do
+          (echo dev && git tag -l "v[1-9]*") | while read -r tag; do
             echo "::group::Processing release: $tag"
             [[ "$tag" == "dev" ]] && git checkout main || git checkout $tag
             uv run --frozen zensical build --strict
