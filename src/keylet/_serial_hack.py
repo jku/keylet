@@ -19,6 +19,8 @@ class SerialConnection(Protocol):
     def read(self, n: int) -> bytes: ...
     def write(self, data: bytes) -> int: ...
     def close(self) -> None: ...
+    def reset_input_buffer(self) -> None: ...
+    def reset_output_buffer(self) -> None: ...
 
     @property
     def in_waiting(self) -> int: ...
@@ -125,10 +127,14 @@ class RawSerialConnection:
         return bytes(data)
 
     def reset_input_buffer(self) -> None:
-        pass
+        if self._fd is None:
+            raise ValueError("Port is closed")
+        termios.tcflush(self._fd, termios.TCIFLUSH)
 
     def reset_output_buffer(self) -> None:
-        pass
+        if self._fd is None:
+            raise ValueError("Port is closed")
+        termios.tcflush(self._fd, termios.TCOFLUSH)
 
     @property
     def in_waiting(self) -> int:

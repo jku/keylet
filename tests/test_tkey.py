@@ -3,6 +3,7 @@
 
 import hashlib
 import io
+import sys
 from collections.abc import Generator
 from typing import cast
 from unittest.mock import MagicMock, patch
@@ -13,12 +14,17 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 
+if sys.platform == "linux":
+    import termios
+
+from keylet._serial_hack import RawSerialConnection
 from keylet.tkey import (
     PROTO_DATA_LENGTH,
     FwCmd,
     FwRsp,
     Rsp,
     TKey,
+    TKeyError,
     TKeyNOKError,
     TKeyNotInFirmwareModeError,
 )
@@ -72,6 +78,12 @@ class MockStreamConnection:
     def close(self) -> None:
         self.closed = True
 
+    def reset_input_buffer(self) -> None:
+        pass
+
+    def reset_output_buffer(self) -> None:
+        pass
+
     @property
     def in_waiting(self) -> int:
         return sum(len(b) for b in self.reads)
@@ -89,8 +101,23 @@ def test_tkey_init_and_disconnect(
     mock_get_connection.assert_called_once_with(
         "/dev/ttyACM0", baudrate=62500, timeout=5.0
     )
+    mock_conn.reset_input_buffer.assert_called_once()
 
     tkey.disconnect()
+    mock_conn.close.assert_called_once()
+
+
+@patch.object(TKey, "_get_connection")
+def test_tkey_init_reset_input_buffer_failure(
+    mock_get_connection: MagicMock,
+) -> None:
+    mock_conn = MagicMock()
+    mock_conn.reset_input_buffer.side_effect = OSError("Flush failed")
+    mock_get_connection.return_value = mock_conn
+
+    with pytest.raises(TKeyError, match="Failed to reset input buffer"):
+        TKey(device=None)
+
     mock_conn.close.assert_called_once()
 
 
@@ -645,3 +672,27 @@ def test_sign_streaming_invalid_types(
     # Unsupported message type
     with pytest.raises(TypeError):
         signer.sign(cast("SignableMessage", 12345), pub_key=dummy_pubkey)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="RawSerialConnection is Linux-only")
+def test_raw_serial_connection_buffer_flush(monkeypatch: pytest.MonkeyPatch) -> None:
+    conn = RawSerialConnection.__new__(RawSerialConnection)
+    conn._fd = None
+    with pytest.raises(ValueError, match="Port is closed"):
+        conn.reset_input_buffer()
+    with pytest.raises(ValueError, match="Port is closed"):
+        conn.reset_output_buffer()
+
+    conn._fd = 123
+    tcflush_calls: list[tuple[int, int]] = []
+
+    def fake_tcflush(fd: int, queue_selector: int) -> None:
+        tcflush_calls.append((fd, queue_selector))
+
+    monkeypatch.setattr(termios, "tcflush", fake_tcflush)
+
+    conn.reset_input_buffer()
+    assert tcflush_calls == [(123, termios.TCIFLUSH)]
+
+    conn.reset_output_buffer()
+    assert tcflush_calls == [(123, termios.TCIFLUSH), (123, termios.TCOFLUSH)]

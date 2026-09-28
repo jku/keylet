@@ -171,6 +171,11 @@ class TKey:
 
         port = self._find_device(device)
         self._conn = self._get_connection(port, baudrate=62500, timeout=5.0)
+        try:
+            self._conn.reset_input_buffer()
+        except OSError as e:
+            self.disconnect()
+            raise TKeyError(f"Failed to reset input buffer on {port}") from e
 
     @staticmethod
     def _find_device(device_path: str | None) -> str:
