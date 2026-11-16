@@ -182,7 +182,7 @@ class TKey:
         """Discover TKey device serial port using pyserial."""
 
         ports = list_ports.comports()
-        devices = sorted(
+        devices: list[str] = sorted(
             p.device for p in ports if p.vid == TKEY_USB_VID and p.pid == TKEY_USB_PID
         )
 
